@@ -5,7 +5,7 @@
 
 
 from keras.models import Sequential
-from keras.layers import Dense, Activation
+from keras.layers import Dense, Activation, Dropout
 import csv
 import numpy as np
 import random
@@ -13,6 +13,7 @@ from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
+import math
 
 
 # In[3]:
@@ -22,10 +23,10 @@ df = pd.read_csv('train.csv')
 
 df_train_y = df['Survived'].values
 df_train_x = df.drop(['Survived'], axis=1)
-df_test_x = pd.read_csv('test.csv')
+df_predict_x = pd.read_csv('test.csv')
 
-test_passenger_ids = df_test_x['PassengerId']
-test_passenger_ids = np.reshape(test_passenger_ids.values, (df_test_x.shape[0], 1))
+test_passenger_ids = df_predict_x['PassengerId']
+test_passenger_ids = np.reshape(test_passenger_ids.values, (df_predict_x.shape[0], 1))
 
 labels = df_train_x.columns.values
 
@@ -46,7 +47,7 @@ def remove_unused_cols(dataset, labels):
     return dataset, labels
 
 df_train_x, labels = remove_unused_cols(df_train_x, labels)
-df_test_x, _ = remove_unused_cols(df_test_x, labels)
+df_predict_x, _ = remove_unused_cols(df_predict_x, labels)
 
 
 # # Preprocessing
@@ -68,7 +69,7 @@ def fill_missing_age_fields(dataset):
     dataset["Age"].fillna(mean_age, inplace =True)
     
 fill_missing_age_fields(df_train_x)
-fill_missing_age_fields(df_test_x)
+fill_missing_age_fields(df_predict_x)
 
 
 #%%
@@ -86,7 +87,7 @@ def categorize_ages(dataset):
     #dataset.assign()
 
 df_train_x = categorize_ages(df_train_x)
-df_test_x = categorize_ages(df_test_x)
+df_predict_x = categorize_ages(df_predict_x)
 
 # In[26]:
 
@@ -111,7 +112,7 @@ def one_hot_encode_column(dataset, col_names):
 columns_to_one_hot_encode = ['Pclass', 'Sex', 'Age']
 
 df_train_x = one_hot_encode_column(df_train_x, columns_to_one_hot_encode)
-df_test_x = one_hot_encode_column(df_test_x, columns_to_one_hot_encode)
+df_predict_x = one_hot_encode_column(df_predict_x, columns_to_one_hot_encode)
 
 
 # # Standardize Data
@@ -121,7 +122,7 @@ df_test_x = one_hot_encode_column(df_test_x, columns_to_one_hot_encode)
 
 scaler = StandardScaler().fit(df_train_x)
 train_x = scaler.transform(df_train_x)
-test_x = scaler.transform(df_test_x)
+predict_x = scaler.transform(df_predict_x)
 
 
 # # Apply Magic
@@ -129,12 +130,25 @@ test_x = scaler.transform(df_test_x)
 # **Todo**:
 # - k-Fold Cross Validation?
 
+
+
+#%% Create a test set
+testRange = math.floor(train_x.shape[0] * 0.25)
+test_x = train_x[range(testRange)]
+test_y = df_train_y[range(testRange)]
+train_x = train_x[testRange:]
+train_y = df_train_y[testRange:]
+
+
 # In[20]:
 
 
 # Define binary classification model
 model = Sequential()
 model.add(Dense(32, activation='relu', input_dim=train_x.shape[1]))
+model.add(Dropout(0.01))
+model.add(Dense(32))
+model.add(Dropout(0.01))
 model.add(Dense(1, activation='sigmoid'))
 model.compile(optimizer='rmsprop',
               loss='binary_crossentropy',
@@ -145,14 +159,16 @@ model.compile(optimizer='rmsprop',
 
 
 # Train the model, iterating on the data in batches of 32 samples
-model.fit(train_x, df_train_y, epochs=500, batch_size=32)
-
+for i in range(1000):
+    model.fit(train_x, train_y, epochs=5, batch_size=32)
+    print("Test accuracy: ")
+    print(model.evaluate(test_x, test_y)[1])
 
 # In[ ]:
 
 
 # Run the model against the test data
-predict_y = model.predict(test_x)
+predict_y = model.predict(predict_x)
 predict_y = np.around(predict_y)
 predict_y = predict_y.astype(np.integer)
 
