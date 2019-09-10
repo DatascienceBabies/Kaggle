@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # In[2]:
-
+%matplotlib inline
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
@@ -14,6 +14,9 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 import math
+from matplotlib import pyplot as plt
+import collections
+from IPython.display import clear_output
 
 
 # In[3]:
@@ -157,12 +160,39 @@ model.compile(optimizer='rmsprop',
 
 # In[21]:
 
+def UpdateAccuracyPlot(train_accuracy, test_accuracy):
+    x = range(len(test_accuracy))
+    fig = plt.figure()
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.plot(x, test_accuracy)
+    ax.plot(x, train_accuracy)
+    ax.set_title("Accuracy")
+    ax.set_xlabel("Iteration")
+    ax.set_ylabel("Accuracy")
+    #plt.show()
+
+def live_plot(data_dict, figsize=(7,5), title=''):
+    clear_output(wait=True)
+    plt.figure(figsize=figsize)
+    for label,data in data_dict.items():
+        plt.plot(data, label=label)
+    plt.title(title)
+    plt.grid(True)
+    plt.xlabel('epoch')
+    plt.legend(loc='center left') # the plot evolves to the right
+    plt.show();
+
 
 # Train the model, iterating on the data in batches of 32 samples
-for i in range(1000):
+plotData = collections.defaultdict(list)
+for i in range(10):
     model.fit(train_x, train_y, epochs=5, batch_size=32)
-    print("Test accuracy: ")
-    print(model.evaluate(test_x, test_y)[1])
+    test_accuracy = model.evaluate(test_x, test_y)[1]
+    train_accuracy = model.evaluate(train_x, train_y)[1]
+    plotData['train_accuracy'].append(train_accuracy)
+    plotData['test_accuracy'].append(test_accuracy)
+
+live_plot(plotData)
 
 # In[ ]:
 
