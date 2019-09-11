@@ -9,7 +9,6 @@ from keras.layers import Dense, Activation, Dropout
 import csv
 import numpy as np
 import random
-from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
@@ -17,42 +16,111 @@ import math
 from matplotlib import pyplot as plt
 import collections
 from IPython.display import clear_output
+import Dataset as ds
 
 
 # In[3]:
 
-
-df = pd.read_csv('train.csv')
-
-df_train_y = df['Survived'].values
-df_train_x = df.drop(['Survived'], axis=1)
-df_predict_x = pd.read_csv('test.csv')
-
-test_passenger_ids = df_predict_x['PassengerId']
-test_passenger_ids = np.reshape(test_passenger_ids.values, (df_predict_x.shape[0], 1))
-
-labels = df_train_x.columns.values
-
-
-# # Remove unused Columns
-
-# In[4]:
+# Creates a live plot which is shown while a cell is being run
+def live_plot(data_dict, figsize=(15,5), title=''):
+    clear_output(wait=True)
+    plt.figure(figsize=figsize)
+    for label,data in data_dict.items():
+        plt.plot(data, label=label)
+    plt.title(title)
+    plt.grid(True)
+    plt.xlabel('epoch')
+    plt.legend(loc='center left') # the plot evolves to the right
+    plt.show();
 
 
-def remove_unused_cols(dataset, labels):
-    unused_cols = ["PassengerId", "Name", "Cabin", "Embarked", "Ticket"]
-    
-    for col_name in unused_cols:
-        labels = labels[labels != col_name]
-        dataset = dataset.drop([col_name], axis=1)
-       
-    
-    return dataset, labels
+#%% Dataset generation
+# TODO: We should optimize the workflow here such that the data operations can be applied to multiple datasets
 
-df_train_x, labels = remove_unused_cols(df_train_x, labels)
-df_predict_x, _ = remove_unused_cols(df_predict_x, labels)
+dataset = ds.Dataset()
+dataset.load_dataset_from_csv('train.csv')
+dataset.randomize_dataset()
+
+dataset.add_Y_parameter('Survived')
+
+dataset.add_X_parameter('Sex')
+dataset.one_hot_X_parameter('Sex')
+
+dataset.standardize_X()
+
+train_X, test_X = dataset.get_X_train_test_sets(0.2)
+train_Y, test_Y = dataset.get_Y_train_test_sets(0.2)
+
+dataset_prediction = ds.Dataset()
+dataset_prediction.load_dataset_from_csv('test.csv')
+dataset_prediction.randomize_dataset()
+
+dataset_prediction.add_X_parameter('Sex')
+dataset_prediction.one_hot_X_parameter('Sex')
+
+dataset_prediction.standardize_X()
+
+predict_X, _ = dataset_prediction.get_X_train_test_sets(0)
+test_passenger_ids = dataset_prediction.get_dataset_parameter('PassengerId')
+test_passenger_ids = np.reshape(test_passenger_ids.values, (test_passenger_ids.shape[0], 1))
+
+# In[20]: Define binary classification model
+
+model = Sequential()
+model.add(Dense(5, activation='relu', input_dim=train_X.shape[1]))
+model.add(Dense(1, activation='sigmoid'))
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
 
 
+# In[21]:
+# Train the model
+plotData = collections.defaultdict(list)
+for i in range(50):
+    model.fit(train_X, train_Y, epochs=1, batch_size=32)
+    test_accuracy = model.evaluate(test_X, test_Y)[1]
+    train_accuracy = model.evaluate(train_X, train_Y)[1]
+    plotData['train_accuracy'].append(train_accuracy)
+    plotData['test_accuracy'].append(test_accuracy)
+live_plot(plotData)
+
+# In[ ]:
+
+
+# Run the model against the test data
+predict_Y = model.predict(predict_X)
+predict_Y = np.around(predict_Y)
+predict_Y = predict_Y.astype(np.integer)
+
+
+# In[ ]:
+
+
+# Write our predictions to a csv file
+csv_predict = np.concatenate((test_passenger_ids, predict_Y), axis=1)
+csv_predict = np.concatenate((np.reshape(["PassengerId", "Survived"], (1, 2)), csv_predict))
+with open('prediction.csv', 'w', newline='') as csvFile:
+    writer = csv.writer(csvFile)
+    writer.writerows(csv_predict)
+csvFile.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# In[7]:
 # # Preprocessing
 # 
 # **Fill NaN Values for**
@@ -61,8 +129,11 @@ df_predict_x, _ = remove_unused_cols(df_predict_x, labels)
 # **Apply One Hot Encoding on**
 # - Sex
 
-# In[7]:
 
+# # Apply Magic
+# 
+# **Todo**:
+# - k-Fold Cross Validation?
 
 # Should we check for sibling/parents and use this as a criteria for the random value?
 # We could potentially even train a network to guess ages based on the other parameters
@@ -91,132 +162,3 @@ def categorize_ages(dataset):
 
 df_train_x = categorize_ages(df_train_x)
 df_predict_x = categorize_ages(df_predict_x)
-
-# In[26]:
-
-
-def one_hot_encode_column(dataset, col_names):
-    for col_name in col_names:
-        col = dataset.loc[:, col_name]
-        label_encoder = LabelEncoder()
-        integer_encoded = label_encoder.fit_transform(col.values)
-        onehot_encoder = OneHotEncoder(sparse=False)
-        integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
-        onehot_encoded = onehot_encoder.fit_transform(integer_encoded)
-
-        dataset = dataset.drop([col_name], axis=1)
-
-        for i in range(0, onehot_encoded.shape[1]):
-            new_col_name = "{0}_{1}".format(col_name, str(i))
-            dataset[new_col_name] = onehot_encoded[:, i]
-    
-    return dataset
-
-columns_to_one_hot_encode = ['Pclass', 'Sex', 'Age']
-
-df_train_x = one_hot_encode_column(df_train_x, columns_to_one_hot_encode)
-df_predict_x = one_hot_encode_column(df_predict_x, columns_to_one_hot_encode)
-
-
-# # Standardize Data
-
-# In[19]:
-
-
-scaler = StandardScaler().fit(df_train_x)
-train_x = scaler.transform(df_train_x)
-predict_x = scaler.transform(df_predict_x)
-
-
-# # Apply Magic
-# 
-# **Todo**:
-# - k-Fold Cross Validation?
-
-
-
-#%% Create a test set
-testRange = math.floor(train_x.shape[0] * 0.25)
-test_x = train_x[range(testRange)]
-test_y = df_train_y[range(testRange)]
-train_x = train_x[testRange:]
-train_y = df_train_y[testRange:]
-
-
-# In[20]:
-
-
-# Define binary classification model
-model = Sequential()
-model.add(Dense(32, activation='relu', input_dim=train_x.shape[1]))
-model.add(Dropout(0.01))
-model.add(Dense(32))
-model.add(Dropout(0.01))
-model.add(Dense(1, activation='sigmoid'))
-model.compile(optimizer='rmsprop',
-              loss='binary_crossentropy',
-              metrics=['accuracy'])
-
-
-# In[21]:
-
-def UpdateAccuracyPlot(train_accuracy, test_accuracy):
-    x = range(len(test_accuracy))
-    fig = plt.figure()
-    ax = fig.add_axes([0, 0, 1, 1])
-    ax.plot(x, test_accuracy)
-    ax.plot(x, train_accuracy)
-    ax.set_title("Accuracy")
-    ax.set_xlabel("Iteration")
-    ax.set_ylabel("Accuracy")
-    #plt.show()
-
-def live_plot(data_dict, figsize=(7,5), title=''):
-    clear_output(wait=True)
-    plt.figure(figsize=figsize)
-    for label,data in data_dict.items():
-        plt.plot(data, label=label)
-    plt.title(title)
-    plt.grid(True)
-    plt.xlabel('epoch')
-    plt.legend(loc='center left') # the plot evolves to the right
-    plt.show();
-
-
-# Train the model, iterating on the data in batches of 32 samples
-plotData = collections.defaultdict(list)
-for i in range(10):
-    model.fit(train_x, train_y, epochs=5, batch_size=32)
-    test_accuracy = model.evaluate(test_x, test_y)[1]
-    train_accuracy = model.evaluate(train_x, train_y)[1]
-    plotData['train_accuracy'].append(train_accuracy)
-    plotData['test_accuracy'].append(test_accuracy)
-
-live_plot(plotData)
-
-# In[ ]:
-
-
-# Run the model against the test data
-predict_y = model.predict(predict_x)
-predict_y = np.around(predict_y)
-predict_y = predict_y.astype(np.integer)
-
-
-# In[ ]:
-
-
-# Write our predictions to a csv file
-csv_predict = np.concatenate((test_passenger_ids, predict_y), axis=1)
-csv_predict = np.concatenate((np.reshape(["PassengerId", "Survived"], (1, 2)), csv_predict))
-with open('prediction.csv', 'w', newline='') as csvFile:
-    writer = csv.writer(csvFile)
-    writer.writerows(csv_predict)
-csvFile.close()
-
-
-# In[ ]:
-
-
-
-
