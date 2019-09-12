@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 import collections
 from IPython.display import clear_output
 import Dataset as ds
+import DatasetModifier as dsm
 
 
 # In[3]:
@@ -35,31 +36,33 @@ def live_plot(data_dict, figsize=(15,5), title=''):
 
 
 #%% Dataset generation
-# TODO: We should optimize the workflow here such that the data operations can be applied to multiple datasets
 
+# Define the parameter creation steps
+datasetModifier = dsm.DatasetModifier()
+datasetModifier.randomize_dataset()
+datasetModifier.add_Y_parameter('Survived')
+datasetModifier.add_X_parameter('Sex')
+datasetModifier.one_hot_X_parameter('Sex')
+datasetModifier.standardize_X()
+
+# Load the train/test dataset
 dataset = ds.Dataset()
 dataset.load_dataset_from_csv('train.csv')
-dataset.randomize_dataset()
 
-dataset.add_Y_parameter('Survived')
+# Load the prediction dataset
+dataset_prediction = ds.Dataset()
+dataset_prediction.load_dataset_from_csv('test.csv')
 
-dataset.add_X_parameter('Sex')
-dataset.one_hot_X_parameter('Sex')
+# Apply the parameter creation steps to the two datasets
+datasetModifier.generate_X(dataset)
+datasetModifier.generate_Y(dataset)
+datasetModifier.generate_X(dataset_prediction)
 
-dataset.standardize_X()
-
+# Fetch the train and test set data
 train_X, test_X = dataset.get_X_train_test_sets(0.2)
 train_Y, test_Y = dataset.get_Y_train_test_sets(0.2)
 
-dataset_prediction = ds.Dataset()
-dataset_prediction.load_dataset_from_csv('test.csv')
-dataset_prediction.randomize_dataset()
-
-dataset_prediction.add_X_parameter('Sex')
-dataset_prediction.one_hot_X_parameter('Sex')
-
-dataset_prediction.standardize_X()
-
+# Fetch the predict set data
 predict_X, _ = dataset_prediction.get_X_train_test_sets(0)
 test_passenger_ids = dataset_prediction.get_dataset_parameter('PassengerId')
 test_passenger_ids = np.reshape(test_passenger_ids.values, (test_passenger_ids.shape[0], 1))
