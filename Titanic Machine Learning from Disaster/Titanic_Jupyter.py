@@ -39,11 +39,16 @@ def live_plot(data_dict, figsize=(15,5), title=''):
 
 # Define the parameter creation steps
 datasetModifier = dsm.DatasetModifier()
-datasetModifier.randomize_dataset()
-datasetModifier.add_Y_parameter('Survived')
+datasetModifier.dataset_randomize()
+datasetModifier.dataset_fill_missing_number('Age', 30)
+datasetModifier.dataset_categorize_number('Age', [['infant', 0, 2], ['child', 2, 10], ['teenager', 10, 18], ['youngadult', 18, 30], ['midlife', 30, 50], ['oldfart', 50, math.inf]])
+datasetModifier.add_X_parameter('Age')
+datasetModifier.one_hot_X_parameter('Age')
 datasetModifier.add_X_parameter('Sex')
 datasetModifier.one_hot_X_parameter('Sex')
 datasetModifier.standardize_X()
+
+datasetModifier.add_Y_parameter('Survived')
 
 # Load the train/test dataset
 dataset = ds.Dataset()
@@ -70,7 +75,7 @@ test_passenger_ids = np.reshape(test_passenger_ids.values, (test_passenger_ids.s
 # In[20]: Define binary classification model
 
 model = Sequential()
-model.add(Dense(5, activation='relu', input_dim=train_X.shape[1]))
+model.add(Dense(50, activation='relu', input_dim=train_X.shape[1]))
 model.add(Dense(1, activation='sigmoid'))
 model.compile(optimizer='adam',
               loss='binary_crossentropy',
@@ -137,31 +142,3 @@ csvFile.close()
 # 
 # **Todo**:
 # - k-Fold Cross Validation?
-
-# Should we check for sibling/parents and use this as a criteria for the random value?
-# We could potentially even train a network to guess ages based on the other parameters
-def fill_missing_age_fields(dataset):
-    ages = dataset["Age"]
-    mean_age = np.mean(ages[np.where(np.isnan(ages) == False)[0]])
-    dataset["Age"].fillna(mean_age, inplace =True)
-    
-fill_missing_age_fields(df_train_x)
-fill_missing_age_fields(df_predict_x)
-
-
-#%%
-
-def categorize_ages(dataset):
-    ages = dataset["Age"]
-    ages_categorized = np.where(ages >= 0, "          ", '')
-    ages_categorized[np.where(ages < 2)] = "infant"
-    ages_categorized[np.where((ages >= 2) & (ages < 10))] = "child"
-    ages_categorized[np.where((ages >= 10) & (ages < 18))] = "teenager"
-    ages_categorized[np.where((ages >= 18) & (ages < 30))] = "youngAdult"
-    ages_categorized[np.where((ages >= 30) & (ages < 50))] = "midlife"
-    ages_categorized[np.where((ages >= 50))] = "oldFart"
-    return dataset.assign(Age = lambda x: ages_categorized)
-    #dataset.assign()
-
-df_train_x = categorize_ages(df_train_x)
-df_predict_x = categorize_ages(df_predict_x)

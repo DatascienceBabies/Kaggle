@@ -13,10 +13,14 @@ class DatasetModifier:
     _X_modifiers = []
     _Y_modifiers = []
 
+    def __init__(self):
+        _X_modifiers = []
+        _Y_modifiers = []
+
     def _add_X_parameter(self, dataset, parameter_name):
         dataset.X[parameter_name] = dataset.dataset[parameter_name]
 
-    def _randomize_dataset(self, dataset):
+    def _dataset_randomize(self, dataset):
         dataset.dataset = dataset.dataset.sample(frac=1).reset_index(drop=True)        
 
     def _add_Y_parameter(self, dataset, parameter_name):
@@ -42,14 +46,32 @@ class DatasetModifier:
         x_scaled = min_max_scaler.fit_transform(numpyX)
         dataset.X = pd.DataFrame(x_scaled, columns=dataset.X.columns)
 
+    def _dataset_fill_missing_number(self, dataset, parameter_name, value):
+        dataset.dataset[parameter_name].fillna(value, inplace =True)
+
+    def _dataset_categorize_number(self, dataset, parameter_name, categories):
+        data = dataset.dataset[parameter_name]
+        data_categorized = np.where(data <= math.inf, "          ", '')
+        for category in categories:
+            category_name = category[0]
+            category_min = category[1]
+            category_max = category[2]
+            data_categorized[np.where((data >= category_min) & (data < category_max))] = category_name
+        dataset.dataset = dataset.dataset.drop(parameter_name, axis=1)
+        dataset.dataset[parameter_name] = data_categorized
+
+    # Categorizes a number column in the dataset
+    # categories: [[categoryName, min, max], [categoryName, min, max]]
+    def dataset_categorize_number(self, parameter_name, categories):
+        self._X_modifiers.append([self._dataset_categorize_number, parameter_name, categories])
 
     # Adds a parameter from dataset to X
     def add_X_parameter(self, parameter_name):
         self._X_modifiers.append([self._add_X_parameter, parameter_name])
 
     # Randomizes the order of the dataset
-    def randomize_dataset(self):
-        self._X_modifiers.append([self._randomize_dataset])
+    def dataset_randomize(self):
+        self._X_modifiers.append([self._dataset_randomize])
 
     # Adds a parameter from dataset to Y
     def add_Y_parameter(self, parameter_name):
@@ -62,6 +84,10 @@ class DatasetModifier:
     # Standardizes the parameter ranges within X
     def standardize_X(self):
         self._X_modifiers.append([self._standardize_X])
+
+    # Fills in a default value to any missing number field of a parameter
+    def dataset_fill_missing_number(self, parameter_name, value):
+        self._X_modifiers.append([self._dataset_fill_missing_number, parameter_name, value])
 
     def generate_X(self, dataset):
         for X_modifier in self._X_modifiers:
