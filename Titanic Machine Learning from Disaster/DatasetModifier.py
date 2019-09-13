@@ -10,12 +10,14 @@ import numpy as np
 # TODO: Add tests
 # Stores a combination of Dataset modifications which can be applied to multiple Datasets
 class DatasetModifier:
+    _Dataset_modifiers = []
     _X_modifiers = []
     _Y_modifiers = []
 
     def __init__(self):
-        _X_modifiers = []
-        _Y_modifiers = []
+        self._Dataset_modifiers = []
+        self._X_modifiers = []
+        self._Y_modifiers = []
 
     def _add_X_parameter(self, dataset, parameter_name):
         dataset.X[parameter_name] = dataset.dataset[parameter_name]
@@ -63,7 +65,7 @@ class DatasetModifier:
     # Categorizes a number column in the dataset
     # categories: [[categoryName, min, max], [categoryName, min, max]]
     def dataset_categorize_number(self, parameter_name, categories):
-        self._X_modifiers.append([self._dataset_categorize_number, parameter_name, categories])
+        self._Dataset_modifiers.append([self._dataset_categorize_number, parameter_name, categories])
 
     # Adds a parameter from dataset to X
     def add_X_parameter(self, parameter_name):
@@ -71,7 +73,7 @@ class DatasetModifier:
 
     # Randomizes the order of the dataset
     def dataset_randomize(self):
-        self._X_modifiers.append([self._dataset_randomize])
+        self._Dataset_modifiers.append([self._dataset_randomize])
 
     # Adds a parameter from dataset to Y
     def add_Y_parameter(self, parameter_name):
@@ -87,7 +89,19 @@ class DatasetModifier:
 
     # Fills in a default value to any missing number field of a parameter
     def dataset_fill_missing_number(self, parameter_name, value):
-        self._X_modifiers.append([self._dataset_fill_missing_number, parameter_name, value])
+        self._Dataset_modifiers.append([self._dataset_fill_missing_number, parameter_name, value])
+
+    def generate_dataset(self, dataset):
+        for dataset_modifier in self._Dataset_modifiers:
+            # TODO: This can probably be made better
+            if len(dataset_modifier) == 1:
+                dataset_modifier[0](dataset)
+            elif len(dataset_modifier) == 2:
+                dataset_modifier[0](dataset, dataset_modifier[1])
+            elif len(dataset_modifier) == 3:
+                dataset_modifier[0](dataset, dataset_modifier[1], dataset_modifier[2])
+            elif len(dataset_modifier) == 4:
+                dataset_modifier[0](dataset, dataset_modifier[1], dataset_modifier[2], dataset_modifier[3])
 
     def generate_X(self, dataset):
         for X_modifier in self._X_modifiers:
@@ -112,3 +126,12 @@ class DatasetModifier:
                 Y_modifier[0](dataset, Y_modifier[1], Y_modifier[2])
             elif len(Y_modifier) == 4:
                 Y_modifier[0](dataset, Y_modifier[1], Y_modifier[2], Y_modifier[3])
+
+
+
+    # Generates more X, Y examples to balance Y ratios in classification problems
+    # TODO: Incompatible with pandas, fixxy!
+    # TODO: Integrate into DatasetModifier
+    def generate_balanced_data(self):
+        sm = SMOTE(random_state=2)
+        self.X, self.Y = sm.fit_sample(self.X, self.Y.ravel())

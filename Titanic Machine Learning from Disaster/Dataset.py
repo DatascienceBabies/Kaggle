@@ -28,12 +28,6 @@ class Dataset:
     def get_dataset_parameter_names(self):
         return self.dataset.columns
 
-    # Generates more X, Y examples to balance Y ratios in classification problems
-    # TODO: Incompatible with pandas, fixxy!
-    def generate_balanced_data(self):
-        sm = SMOTE(random_state=2)
-        self.X, self.Y = sm.fit_sample(self.X, self.Y.ravel())
-
     # Returns the X train and test sets according to the provided test ratio (0 - 1)
     def get_X_train_test_sets(self, test_set_ratio):
         testRange = math.floor(self.X.shape[0] * test_set_ratio)
