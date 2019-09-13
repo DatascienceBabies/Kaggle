@@ -51,7 +51,7 @@ class DatasetModifier:
         x_scaled = min_max_scaler.fit_transform(numpyX)
         dataset.X = pd.DataFrame(x_scaled, columns=dataset.X.columns)
 
-    def _dataset_fill_missing_number(self, dataset, parameter_name, value):
+    def _dataset_fill_missing_value(self, dataset, parameter_name, value):
         dataset.dataset[parameter_name].fillna(value, inplace =True)
 
     def _dataset_categorize_number(self, dataset, parameter_name, categories):
@@ -64,6 +64,17 @@ class DatasetModifier:
             data_categorized[np.where((data >= category_min) & (data < category_max))] = category_name
         dataset.dataset = dataset.dataset.drop(parameter_name, axis=1)
         dataset.dataset[parameter_name] = data_categorized
+
+    def _X_Y_generate_balanced_data(self, dataset):
+        sm = SMOTE(random_state=2)
+        X, Y = sm.fit_sample(dataset.X, dataset.Y.values.ravel())
+        if dataset.Y.columns.shape[0] != 1:
+            raise ValueError('Cannot support multicolumn Y.')
+
+        # TODO: See if we can do better than creating a whole new copy?
+        dataset.X = pd.DataFrame(X, columns=dataset.X.columns)
+        dataset.Y = pd.DataFrame(Y, columns=dataset.Y.columns)
+
 
     # Categorizes a number column in the dataset
     # categories: [[categoryName, min, max], [categoryName, min, max]]
@@ -91,8 +102,12 @@ class DatasetModifier:
         self._X_modifiers.append([self._standardize_X])
 
     # Fills in a default value to any missing number field of a parameter
-    def dataset_fill_missing_number(self, parameter_name, value):
-        self._Dataset_modifiers.append([self._dataset_fill_missing_number, parameter_name, value])
+    def dataset_fill_missing_value(self, parameter_name, value):
+        self._Dataset_modifiers.append([self._dataset_fill_missing_value, parameter_name, value])
+
+    # Generates more X, Y examples to balance Y ratios in classification problems
+    def X_Y_generate_balanced_data(self):
+        self._Y_modifiers.append([self._X_Y_generate_balanced_data])
 
     def generate_dataset(self, dataset):
         for dataset_modifier in self._Dataset_modifiers:
@@ -129,12 +144,3 @@ class DatasetModifier:
                 Y_modifier[0](dataset, Y_modifier[1], Y_modifier[2])
             elif len(Y_modifier) == 4:
                 Y_modifier[0](dataset, Y_modifier[1], Y_modifier[2], Y_modifier[3])
-
-
-
-    # Generates more X, Y examples to balance Y ratios in classification problems
-    # TODO: Incompatible with pandas, fixxy!
-    # TODO: Integrate into DatasetModifier
-    def generate_balanced_data(self):
-        sm = SMOTE(random_state=2)
-        self.X, self.Y = sm.fit_sample(self.X, self.Y.ravel())

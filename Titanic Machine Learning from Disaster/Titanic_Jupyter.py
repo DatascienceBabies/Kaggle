@@ -6,6 +6,7 @@
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
+from keras.optimizers import Adam
 import csv
 import numpy as np
 import random
@@ -40,15 +41,31 @@ def live_plot(data_dict, figsize=(15,5), title=''):
 # Define the parameter creation steps
 datasetModifier = dsm.DatasetModifier()
 datasetModifier.dataset_randomize()
-datasetModifier.dataset_fill_missing_number('Age', 30)
-datasetModifier.dataset_categorize_number('Age', [['infant', 0, 2], ['child', 2, 10], ['teenager', 10, 18], ['youngadult', 18, 30], ['midlife', 30, 50], ['oldfart', 50, math.inf]])
-datasetModifier.add_X_parameter('Age')
-datasetModifier.one_hot_X_parameter('Age')
+
+# datasetModifier.dataset_fill_missing_value('Age', 30)
+# datasetModifier.dataset_categorize_number('Age', [['child1', 0, 3], ['child2', 3, 6], ['child3', 6, 9], ['child4', 9, 12], ['teenager', 13, 18], ['youngadult', 18, 40], ['midlife', 40, 55], ['oldfart', 55, math.inf]])
+# datasetModifier.add_X_parameter('Age')
+# datasetModifier.one_hot_X_parameter('Age')
+
 datasetModifier.add_X_parameter('Sex')
 datasetModifier.one_hot_X_parameter('Sex')
+
+datasetModifier.dataset_fill_missing_value('Fare', 15)
+datasetModifier.add_X_parameter('Fare')
+
+# datasetModifier.dataset_fill_missing_value('Embarked', 'S')
+# datasetModifier.add_X_parameter('Embarked')
+# datasetModifier.one_hot_X_parameter('Embarked')
+
+# datasetModifier.add_X_parameter('SibSp')
+
+# datasetModifier.add_X_parameter('Parch')
+
 datasetModifier.standardize_X()
 
 datasetModifier.add_Y_parameter('Survived')
+
+datasetModifier.X_Y_generate_balanced_data()
 
 # Load the train/test dataset
 dataset = ds.Dataset()
@@ -77,10 +94,12 @@ test_passenger_ids = np.reshape(test_passenger_ids.values, (test_passenger_ids.s
 
 # In[20]: Define binary classification model
 
+optimizer = Adam(lr=0.0001)
 model = Sequential()
-model.add(Dense(50, activation='relu', input_dim=train_X.shape[1]))
+model.add(Dense(30, activation='relu', input_dim=train_X.shape[1]))
+model.add(Dense(30))
 model.add(Dense(1, activation='sigmoid'))
-model.compile(optimizer='adam',
+model.compile(optimizer=optimizer,
               loss='binary_crossentropy',
               metrics=['accuracy'])
 
@@ -88,12 +107,20 @@ model.compile(optimizer='adam',
 # In[21]:
 # Train the model
 plotData = collections.defaultdict(list)
-for i in range(50):
-    model.fit(train_X, train_Y, epochs=1, batch_size=32)
-    test_accuracy = model.evaluate(test_X, test_Y)[1]
-    train_accuracy = model.evaluate(train_X, train_Y)[1]
-    plotData['train_accuracy'].append(train_accuracy)
-    plotData['test_accuracy'].append(test_accuracy)
+for i in range(20):
+    model.fit(train_X, train_Y, epochs=5, batch_size=32)
+    loss_train = model.evaluate(train_X, train_Y)[0]
+    loss_test = model.evaluate(test_X, test_Y)[0]
+
+    accuracy_train = np.sum(train_Y == np.around(model.predict(train_X)).astype(np.bool)) / train_X.shape[0]
+    accuracy_test = np.sum(test_Y == np.around(model.predict(test_X)).astype(np.bool)) / test_X.shape[0]
+
+    plotData['loss_train'].append(loss_train)
+    plotData['loss_test'].append(loss_test)
+
+    plotData['accuracy_train'].append(accuracy_train)
+    plotData['accuracy_test'].append(accuracy_test)    
+
 live_plot(plotData)
 
 # In[ ]:
