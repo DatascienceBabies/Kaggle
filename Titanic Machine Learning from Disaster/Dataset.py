@@ -47,3 +47,7 @@ class Dataset:
         test_y = self.Y.values[range(testRange)]
         train_y = self.Y.values[testRange:]
         return train_y, test_y
+
+    def find_null_columns(self):
+        null_columns=self.dataset.columns[self.dataset.isnull().any()]
+        return self.dataset[null_columns].isnull().sum()
