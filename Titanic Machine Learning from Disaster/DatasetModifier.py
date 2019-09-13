@@ -22,8 +22,11 @@ class DatasetModifier:
     def _add_X_parameter(self, dataset, parameter_name):
         dataset.X[parameter_name] = dataset.dataset[parameter_name]
 
-    def _dataset_randomize(self, dataset):
-        dataset.dataset = dataset.dataset.sample(frac=1).reset_index(drop=True)        
+    def _dataset_randomize(self, dataset, seed = None):
+        if seed == None:
+            dataset.dataset = dataset.dataset.sample(frac=1).reset_index(drop=True)
+        else:
+            dataset.dataset = dataset.dataset.sample(frac=1, random_state=seed).reset_index(drop=True)
 
     def _add_Y_parameter(self, dataset, parameter_name):
         dataset.Y[parameter_name] = dataset.dataset[parameter_name]
