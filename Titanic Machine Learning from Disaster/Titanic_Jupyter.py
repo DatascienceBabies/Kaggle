@@ -59,8 +59,11 @@ dataset_prediction = ds.Dataset()
 dataset_prediction.load_dataset_from_csv('test.csv')
 
 # Apply the parameter creation steps to the two datasets
+datasetModifier.generate_dataset(dataset)
 datasetModifier.generate_X(dataset)
 datasetModifier.generate_Y(dataset)
+
+datasetModifier.generate_dataset(dataset_prediction)
 datasetModifier.generate_X(dataset_prediction)
 
 # Fetch the train and test set data
