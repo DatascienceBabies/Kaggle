@@ -62,7 +62,7 @@ class DatasetModifier:
     def _fill_missing_values_based_on_criteria(self, row, parameter_name, filter_criteria, non_null_dataset):
         if math.isnan(row[parameter_name]):
             filtered_dataset = non_null_dataset.copy()
-            
+
             for criteria in filter_criteria:
                 row_value = row[criteria]
                 filtered_dataset = filtered_dataset[filtered_dataset[criteria] == row_value]
@@ -73,6 +73,21 @@ class DatasetModifier:
                 return row[parameter_name]
             except:
                 return 0
+
+    def _dataset_add_new_feature_based_on_existing(self, dataset, feature_name, existing_features):
+        for existing_feature in existing_features:
+            if not existing_feature in dataset.dataset.columns:
+                return
+
+        dataset.dataset[feature_name] = dataset.dataset.apply(lambda row: self._add_new_feature(row, feature_name, existing_features), axis=1)
+
+    def _add_new_feature(self, row, feature_name, existing_features):
+        value = 0
+
+        for existing_feature in existing_features:
+            value += row[existing_feature]
+
+        return value
 
     def _dataset_categorize_number(self, dataset, parameter_name, categories):
         data = dataset.dataset[parameter_name]
@@ -127,6 +142,9 @@ class DatasetModifier:
 
     def dataset_fill_missing_value_based_on_criteria(self, parameter_name, filter_criteria):
         self._Dataset_modifiers.append([self._dataset_fill_missing_value_based_on_criteria, parameter_name, filter_criteria])
+
+    def dataset_add_new_feature_based_on_existing(self, feature_name, existing_features):
+        self._Dataset_modifiers.append([self._dataset_add_new_feature_based_on_existing, feature_name, existing_features])
 
     # Generates more X, Y examples to balance Y ratios in classification problems
     def X_Y_generate_balanced_data(self):
