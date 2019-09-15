@@ -12,10 +12,14 @@ class Dataset:
     # Contains the pandas solutions to the training data X
     Y = pd.DataFrame()
 
-    def __init__(self):
+    # True is this is training data with Y, false if this is prediction data
+    isTrainData = False
+
+    def __init__(self, isTrainData):
         self.dataset = pd.DataFrame()
         self.X = pd.DataFrame()
         self.Y = pd.DataFrame()
+        self.isTrainData = isTrainData
 
     # Loads a dataset from csv into dataset
     def load_dataset_from_csv(self, file_path):

@@ -110,6 +110,9 @@ class DatasetModifier:
         dataset.X = pd.DataFrame(X, columns=dataset.X.columns)
         dataset.Y = pd.DataFrame(Y, columns=dataset.Y.columns)
 
+    def _dataset_remove_all_missing_values(self, dataset, parameter_name):
+        dataset.dataset[parameter_name].dropna()
+
 
     # Categorizes a number column in the dataset
     # categories: [[categoryName, min, max], [categoryName, min, max]]
@@ -150,6 +153,10 @@ class DatasetModifier:
     def X_Y_generate_balanced_data(self):
         self._Y_modifiers.append([self._X_Y_generate_balanced_data])
 
+    # Removes all dataset items which has a missing value of a certain parameter name
+    def dataset_remove_all_missing_values(self, parameter_name):
+        self._Y_modifiers.append([self._dataset_remove_all_missing_values, parameter_name])
+
     def generate_dataset(self, dataset):
         for dataset_modifier in self._Dataset_modifiers:
             # TODO: This can probably be made better
@@ -162,7 +169,6 @@ class DatasetModifier:
             elif len(dataset_modifier) == 4:
                 dataset_modifier[0](dataset, dataset_modifier[1], dataset_modifier[2], dataset_modifier[3])
 
-    def generate_X(self, dataset):
         for X_modifier in self._X_modifiers:
             # TODO: This can probably be made better
             if len(X_modifier) == 1:
@@ -173,15 +179,15 @@ class DatasetModifier:
                 X_modifier[0](dataset, X_modifier[1], X_modifier[2])
             elif len(X_modifier) == 4:
                 X_modifier[0](dataset, X_modifier[1], X_modifier[2], X_modifier[3])
-
-    def generate_Y(self, dataset):
-        for Y_modifier in self._Y_modifiers:
-            # TODO: This can probably be made better
-            if len(Y_modifier) == 1:
-                Y_modifier[0](dataset)
-            elif len(Y_modifier) == 2:
-                Y_modifier[0](dataset, Y_modifier[1])
-            elif len(Y_modifier) == 3:
-                Y_modifier[0](dataset, Y_modifier[1], Y_modifier[2])
-            elif len(Y_modifier) == 4:
-                Y_modifier[0](dataset, Y_modifier[1], Y_modifier[2], Y_modifier[3])
+        
+        if dataset.isTrainData:
+            for Y_modifier in self._Y_modifiers:
+                # TODO: This can probably be made better
+                if len(Y_modifier) == 1:
+                    Y_modifier[0](dataset)
+                elif len(Y_modifier) == 2:
+                    Y_modifier[0](dataset, Y_modifier[1])
+                elif len(Y_modifier) == 3:
+                    Y_modifier[0](dataset, Y_modifier[1], Y_modifier[2])
+                elif len(Y_modifier) == 4:
+                    Y_modifier[0](dataset, Y_modifier[1], Y_modifier[2], Y_modifier[3])
