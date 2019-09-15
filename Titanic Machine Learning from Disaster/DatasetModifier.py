@@ -54,6 +54,26 @@ class DatasetModifier:
     def _dataset_fill_missing_value(self, dataset, parameter_name, value):
         dataset.dataset[parameter_name].fillna(value, inplace =True)
 
+    def _dataset_fill_missing_value_based_on_criteria(self, dataset, parameter_name, filter_criteria):
+        if parameter_name in dataset.dataset:
+            non_null_dataset = dataset.dataset[dataset.dataset[parameter_name].isnull() == False]
+            dataset.dataset[parameter_name] = dataset.dataset.apply(lambda row: self._fill_missing_values_based_on_criteria(row, parameter_name, filter_criteria, non_null_dataset), axis=1)
+
+    def _fill_missing_values_based_on_criteria(self, row, parameter_name, filter_criteria, non_null_dataset):
+        if math.isnan(row[parameter_name]):
+            filtered_dataset = non_null_dataset.copy()
+            
+            for criteria in filter_criteria:
+                row_value = row[criteria]
+                filtered_dataset = filtered_dataset[filtered_dataset[criteria] == row_value]
+                
+            return filtered_dataset[parameter_name].median()
+        else:
+            try:
+                return row[parameter_name]
+            except:
+                return 0
+
     def _dataset_categorize_number(self, dataset, parameter_name, categories):
         data = dataset.dataset[parameter_name]
         data_categorized = np.where(data <= math.inf, "          ", '')
@@ -101,9 +121,12 @@ class DatasetModifier:
     def standardize_X(self):
         self._X_modifiers.append([self._standardize_X])
 
-    # Fills in a default value to any missing number field of a parameter
+    # Fills in a default value to any missing value field of a parameter
     def dataset_fill_missing_value(self, parameter_name, value):
         self._Dataset_modifiers.append([self._dataset_fill_missing_value, parameter_name, value])
+
+    def dataset_fill_missing_value_based_on_criteria(self, parameter_name, filter_criteria):
+        self._Dataset_modifiers.append([self._dataset_fill_missing_value_based_on_criteria, parameter_name, filter_criteria])
 
     # Generates more X, Y examples to balance Y ratios in classification problems
     def X_Y_generate_balanced_data(self):
