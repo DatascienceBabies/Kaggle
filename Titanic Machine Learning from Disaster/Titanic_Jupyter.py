@@ -38,6 +38,9 @@ def live_plot(data_dict, figsize=(15,5), title=''):
 
 #%% Dataset generation
 
+def extract_title_from_name(row):
+    return row['Name'].split(',')[1].split('.')[0].strip()
+
 # Define the parameter creation steps
 datasetModifier = dsm.DatasetModifier()
 datasetModifier.dataset_randomize()
@@ -64,11 +67,17 @@ datasetModifier.add_X_parameter('SibSp')
 
 datasetModifier.add_X_parameter('Parch')
 
+datasetModifier.dataset_add_new_feature_based_on_custom_function('Title', extract_title_from_name)
+datasetModifier.add_X_parameter('Title')
+datasetModifier.one_hot_X_parameter('Title')
+
 datasetModifier.standardize_X()
 
 datasetModifier.add_Y_parameter('Survived')
 
 datasetModifier.X_Y_generate_balanced_data()
+
+
 
 # Load the train/test dataset
 dataset = ds.Dataset(isTrainData = True)
