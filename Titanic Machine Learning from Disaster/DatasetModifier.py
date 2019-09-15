@@ -89,6 +89,9 @@ class DatasetModifier:
 
         return value
 
+    def _dataset_add_new_feature_based_on_custom_function(self, dataset, feature_name, custom_function):
+        dataset.dataset[feature_name] = dataset.dataset.apply(lambda row: custom_function(row), axis=1)
+
     def _dataset_categorize_number(self, dataset, parameter_name, categories):
         data = dataset.dataset[parameter_name]
         data_categorized = np.where(data <= math.inf, "          ", '')
@@ -180,6 +183,9 @@ class DatasetModifier:
 
     def dataset_add_new_feature_based_on_existing(self, feature_name, existing_features):
         self._Dataset_modifiers.append([self._dataset_add_new_feature_based_on_existing, feature_name, existing_features])
+
+    def dataset_add_new_feature_based_on_custom_function(self, feature_name, custom_function):
+        self._Dataset_modifiers.append([self._dataset_add_new_feature_based_on_custom_function, feature_name, custom_function])        
 
     # Generates more X, Y examples to balance Y ratios in classification problems
     def X_Y_generate_balanced_data(self):
