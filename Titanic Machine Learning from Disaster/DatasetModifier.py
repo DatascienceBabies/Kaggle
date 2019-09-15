@@ -100,6 +100,30 @@ class DatasetModifier:
         dataset.dataset = dataset.dataset.drop(parameter_name, axis=1)
         dataset.dataset[parameter_name] = data_categorized
 
+    def _dataset_add_boolean_parameter(self, dataset, boolean_parameter_name, filters):
+        boolean_parameter = np.ones((dataset.dataset.shape[0], 1))
+        for filter in filters:
+            parameter_name = filter[0]
+            logical_operator = filter[1]
+            value = filter[2]
+            if logical_operator == '==':
+                boolean_parameter[~(dataset.dataset[parameter_name] == value)] = 0
+            elif logical_operator == '!=':
+                boolean_parameter[~(dataset.dataset[parameter_name] != value)] = 0
+            elif logical_operator == '>':
+                boolean_parameter[~(dataset.dataset[parameter_name] > value)] = 0
+            elif logical_operator == '>=':
+                boolean_parameter[~(dataset.dataset[parameter_name] >= value)] = 0
+            elif logical_operator == '<':
+                boolean_parameter[~(dataset.dataset[parameter_name] < value)] = 0
+            elif logical_operator == '<=':
+                boolean_parameter[~(dataset.dataset[parameter_name] <= value)] = 0
+            else:
+                raise ValueError('Does not support that operator.')
+        dataset.dataset[boolean_parameter_name] = boolean_parameter
+                
+                
+
     def _X_Y_generate_balanced_data(self, dataset):
         sm = SMOTE(random_state=2)
         X, Y = sm.fit_sample(dataset.X, dataset.Y.values.ravel())
@@ -111,13 +135,21 @@ class DatasetModifier:
         dataset.Y = pd.DataFrame(Y, columns=dataset.Y.columns)
 
     def _dataset_remove_all_missing_values(self, dataset, parameter_name):
-        dataset.dataset[parameter_name].dropna()
+        dataset.dataset = dataset.dataset.dropna(subset=[parameter_name])
+
+    def _dataset_generic_modification(self, dataset, evaluation):
+        exec(evaluation)
 
 
     # Categorizes a number column in the dataset
     # categories: [[categoryName, min, max], [categoryName, min, max]]
     def dataset_categorize_number(self, parameter_name, categories):
         self._Dataset_modifiers.append([self._dataset_categorize_number, parameter_name, categories])
+
+    # Creates a boolean parameter based on a combination of many parameter ranges
+    # filters: [[filter parameter name, logical operator, value]]
+    def dataset_add_boolean_parameter(self, boolean_parameter_name, filters):
+        self._Dataset_modifiers.append([self._dataset_add_boolean_parameter, boolean_parameter_name, filters])
 
     # Adds a parameter from dataset to X
     def add_X_parameter(self, parameter_name):
@@ -155,7 +187,12 @@ class DatasetModifier:
 
     # Removes all dataset items which has a missing value of a certain parameter name
     def dataset_remove_all_missing_values(self, parameter_name):
-        self._Y_modifiers.append([self._dataset_remove_all_missing_values, parameter_name])
+        self._Dataset_modifiers.append([self._dataset_remove_all_missing_values, parameter_name])
+
+    # Allows a generic modification to the dataset via the exec() functionality
+    # Example: TODO: Add example
+    def dataset_generic_modification(self, evaluation):
+        self._Dataset_modifiers.append([self._dataset_generic_modification, evaluation])
 
     def generate_dataset(self, dataset):
         for dataset_modifier in self._Dataset_modifiers:

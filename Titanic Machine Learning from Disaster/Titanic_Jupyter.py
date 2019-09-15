@@ -40,29 +40,38 @@ def live_plot(data_dict, figsize=(15,5), title=''):
 
 # Define the parameter creation steps
 datasetModifier = dsm.DatasetModifier()
-datasetModifier.dataset_randomize()
+#datasetModifier.dataset_randomize()
 
+#datasetModifier.dataset_remove_all_missing_values('Age')
 datasetModifier.dataset_fill_missing_value('Age', 30)
+# Filter out boy children
+#datasetModifier.dataset_generic_modification('dataset.dataset = dataset.dataset.drop(dataset.dataset[dataset.dataset.Age > 10].index)')
+#datasetModifier.dataset_generic_modification('dataset.dataset = dataset.dataset.drop(dataset.dataset[dataset.dataset.Sex == \'female\'].index)')
+datasetModifier.dataset_add_boolean_parameter(
+    'boyChild', [['Sex', '==', 'male'], ['Age', '<=', 10]])
+datasetModifier.add_X_parameter('boyChild')
+
 #datasetModifier.dataset_categorize_number('Age', [['child1', 0, 3], ['child2', 3, 6], ['child3', 6, 9], ['child4', 9, 12], ['teenager', 13, 18], ['youngadult', 18, 40], ['midlife', 40, 55], ['oldfart', 55, math.inf]])
+#datasetModifier.dataset_categorize_number('Age', [['child', 0, 5], ['adult', 5, math.inf]])
 #datasetModifier.add_X_parameter('Age')
 #datasetModifier.one_hot_X_parameter('Age')
 
-datasetModifier.add_X_parameter('Pclass')
-datasetModifier.one_hot_X_parameter('Pclass')
+#datasetModifier.add_X_parameter('Pclass')
+#datasetModifier.one_hot_X_parameter('Pclass')
 
-datasetModifier.add_X_parameter('Sex')
-datasetModifier.one_hot_X_parameter('Sex')
+#datasetModifier.add_X_parameter('Sex')
+#datasetModifier.one_hot_X_parameter('Sex')
 
-datasetModifier.dataset_fill_missing_value('Fare', 15)
-datasetModifier.add_X_parameter('Fare')
+#datasetModifier.dataset_fill_missing_value('Fare', 15)
+#datasetModifier.add_X_parameter('Fare')
 
 datasetModifier.dataset_fill_missing_value('Embarked', 'S')
 datasetModifier.add_X_parameter('Embarked')
 datasetModifier.one_hot_X_parameter('Embarked')
 
-datasetModifier.add_X_parameter('SibSp')
+#datasetModifier.add_X_parameter('SibSp')
 
-datasetModifier.add_X_parameter('Parch')
+#datasetModifier.add_X_parameter('Parch')
 
 datasetModifier.standardize_X()
 
@@ -97,7 +106,9 @@ test_passenger_ids = np.reshape(test_passenger_ids.values, (test_passenger_ids.s
 optimizer = Adam(lr=0.00001)
 model = Sequential()
 model.add(Dense(30, activation='relu', input_dim=train_X.shape[1]))
-model.add(Dense(5))
+model.add(Dense(30))
+model.add(Dense(30))
+model.add(Dense(30))
 model.add(Dense(1, activation='sigmoid'))
 model.compile(optimizer=optimizer,
               loss='binary_crossentropy',
@@ -107,8 +118,8 @@ model.compile(optimizer=optimizer,
 # In[21]:
 # Train the model
 plotData = collections.defaultdict(list)
-for i in range(50):
-    model.fit(train_X, train_Y, epochs=5, batch_size=32)
+for i in range(100):
+    model.fit(train_X, train_Y, epochs=1, batch_size=32)
     loss_train = model.evaluate(train_X, train_Y)[0]
     loss_test = model.evaluate(test_X, test_Y)[0]
 
