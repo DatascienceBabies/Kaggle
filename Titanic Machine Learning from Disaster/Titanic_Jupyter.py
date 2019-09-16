@@ -33,7 +33,7 @@ def live_plot(data_dict, figsize=(15,5), title=''):
     plt.grid(True)
     plt.xlabel('epoch')
     plt.legend(loc='center left') # the plot evolves to the right
-    plt.show();
+    plt.show()
 
 
 #%% Dataset generation
