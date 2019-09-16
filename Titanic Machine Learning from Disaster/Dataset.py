@@ -1,6 +1,7 @@
 import pandas as pd
 import math
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 class Dataset:
     # Contains the unmodified pandas dataset after being loaded
@@ -45,6 +46,13 @@ class Dataset:
         test_y = self.Y.values[range(testRange)]
         train_y = self.Y.values[testRange:]
         return train_y, test_y
+
+    def get_train_test_set(self, test_set_ratio, random_state=0):
+        x_train, x_test, y_train, y_test = train_test_split(self.X, self.Y, test_size=test_set_ratio, random_state=random_state)
+        y_train = np.ravel(y_train)
+        y_test = np.ravel(y_test)
+
+        return x_train, x_test, y_train, y_test
 
     def find_null_columns(self):
         null_columns=self.dataset.columns[self.dataset.isnull().any()]

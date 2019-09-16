@@ -14,10 +14,13 @@ class DatasetModifier:
     _X_modifiers = []
     _Y_modifiers = []
 
+    _encoders = {}
+
     def __init__(self):
         self._Dataset_modifiers = []
         self._X_modifiers = []
         self._Y_modifiers = []
+        self._encoders = {}
 
     def _add_X_parameter(self, dataset, parameter_name):
         dataset.X[parameter_name] = dataset.dataset[parameter_name]
@@ -32,13 +35,18 @@ class DatasetModifier:
         dataset.Y[parameter_name] = dataset.dataset[parameter_name]
 
     def _one_hot_X_parameter(self, dataset, parameter_name):
-        col = dataset.X.loc[:, parameter_name]
-        label_encoder = LabelEncoder()
-        integer_encoded = label_encoder.fit_transform(col.values)
-        onehot_encoder = OneHotEncoder(sparse=False)
-        integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
-        onehot_encoded = onehot_encoder.fit_transform(integer_encoded)
+        col_values = dataset.X.loc[:, parameter_name]
+        values_to_encode = col_values.values.reshape(len(col_values.values), 1)
 
+        if parameter_name not in self._encoders:
+            self._encoders[parameter_name] = {}
+        
+        if 'onehot' not in self._encoders[parameter_name]:
+            onehot_encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+            self._encoders[parameter_name]['onehot'] = onehot_encoder.fit(values_to_encode)
+
+        onehot_encoder = self._encoders[parameter_name]['onehot']
+        onehot_encoded = onehot_encoder.transform(values_to_encode)
         dataset.X = dataset.X.drop([parameter_name], axis=1)
 
         for i in range(0, onehot_encoded.shape[1]):
@@ -60,7 +68,8 @@ class DatasetModifier:
             dataset.dataset[parameter_name] = dataset.dataset.apply(lambda row: self._fill_missing_values_based_on_criteria(row, parameter_name, filter_criteria, non_null_dataset), axis=1)
 
     def _fill_missing_values_based_on_criteria(self, row, parameter_name, filter_criteria, non_null_dataset):
-        if math.isnan(row[parameter_name]):
+        row_value = row[parameter_name]
+        if not bool(row_value):
             filtered_dataset = non_null_dataset.copy()
 
             for criteria in filter_criteria:

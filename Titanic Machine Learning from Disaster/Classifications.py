@@ -15,8 +15,8 @@ import Dataset
 class Classifications:
     algorithms = {}
 
-    def add_logistic_regression(self, cross_validation=5, rnd_state=0):
-        lr = LogisticRegressionCV(cv=cross_validation, random_state=rnd_state)
+    def add_logistic_regression(self, cross_validation=5, rnd_state=0, max_iter=100):
+        lr = LogisticRegressionCV(cv=cross_validation, random_state=rnd_state, max_iter=max_iter)
         self.algorithms["Logistic Regression"] = lr
 
     def find_svm_linear_params(self, train_X, train_Y, num_steps=40, start=-3, stop=4):
@@ -98,6 +98,7 @@ class Classifications:
         best_score = 0
 
         for alg_name in self.algorithms:
+            print('Evaluating {0}...'.format(alg_name))
             alg = self.algorithms[alg_name]
             alg.fit(train_x, train_y)
             score = alg.score(test_x, test_y)
