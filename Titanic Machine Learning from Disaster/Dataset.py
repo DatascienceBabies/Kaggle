@@ -13,13 +13,13 @@ class Dataset:
     Y = pd.DataFrame()
 
     # True is this is training data with Y, false if this is prediction data
-    isTrainData = False
+    is_train_data = False
 
-    def __init__(self, isTrainData):
+    def __init__(self, is_train_data):
         self.dataset = pd.DataFrame()
         self.X = pd.DataFrame()
         self.Y = pd.DataFrame()
-        self.isTrainData = isTrainData
+        self.is_train_data = is_train_data
 
     # Loads a dataset from csv into dataset
     def load_dataset_from_csv(self, file_path):

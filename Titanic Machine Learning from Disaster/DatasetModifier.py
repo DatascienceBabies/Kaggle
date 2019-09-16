@@ -13,11 +13,13 @@ class DatasetModifier:
     _Dataset_modifiers = []
     _X_modifiers = []
     _Y_modifiers = []
+    _X_scaler = StandardScaler()
 
     def __init__(self):
         self._Dataset_modifiers = []
         self._X_modifiers = []
         self._Y_modifiers = []
+        self._X_scaler = StandardScaler()
 
     def _add_X_parameter(self, dataset, parameter_name):
         dataset.X[parameter_name] = dataset.dataset[parameter_name]
@@ -45,14 +47,21 @@ class DatasetModifier:
             new_col_name = "{0}_{1}".format(parameter_name, str(i))
             dataset.X[new_col_name] = onehot_encoded[:, i]
 
-    def _standardize_X(self, dataset):
-        numpyX = dataset.X.values #returns a numpy array
-        min_max_scaler = MinMaxScaler()
-        x_scaled = min_max_scaler.fit_transform(numpyX)
-        dataset.X = pd.DataFrame(x_scaled, columns=dataset.X.columns)
+    def _standardize_X(self, dataset, standardization_dataset):
+        train_numerical_features = list(dataset.X.select_dtypes(include=['int64', 'float64', 'int32']).columns)
+        dataset_fit = pd.DataFrame(data = standardization_dataset.X)
+        dataset_train = pd.DataFrame(data = dataset.X)
+        # TODO: This is always run when it would be enough to run it once. Refactor.
+        self._X_scaler.fit(dataset_fit[train_numerical_features])
+        dataset.X[train_numerical_features] = self._X_scaler.transform(dataset_train[train_numerical_features])
 
-    def _dataset_fill_missing_value(self, dataset, parameter_name, value):
-        dataset.dataset[parameter_name].fillna(value, inplace =True)
+    def _dataset_fill_missing_value(self, dataset, parameter_name):
+        data = dataset.dataset[parameter_name]
+        mean = data.mean()
+        std = data.std()
+        is_null = data.isnull().sum()
+        rand_values = np.random.normal(mean, std, (is_null))
+        dataset.dataset[parameter_name].values[np.where(data.isnull())[0]] = rand_values
 
     def _dataset_fill_missing_value_based_on_criteria(self, dataset, parameter_name, filter_criteria):
         if parameter_name in dataset.dataset:
@@ -171,12 +180,12 @@ class DatasetModifier:
         self._X_modifiers.append([self._one_hot_X_parameter, parameter_name])
 
     # Standardizes the parameter ranges within X
-    def standardize_X(self):
-        self._X_modifiers.append([self._standardize_X])
+    def standardize_X(self, standardization_dataset):
+        self._X_modifiers.append([self._standardize_X, standardization_dataset])
 
-    # Fills in a default value to any missing value field of a parameter
-    def dataset_fill_missing_value(self, parameter_name, value):
-        self._Dataset_modifiers.append([self._dataset_fill_missing_value, parameter_name, value])
+    # Fills in a random standard deviation value to any missing value field of a parameter
+    def dataset_fill_missing_value(self, parameter_name):
+        self._Dataset_modifiers.append([self._dataset_fill_missing_value, parameter_name])
 
     def dataset_fill_missing_value_based_on_criteria(self, parameter_name, filter_criteria):
         self._Dataset_modifiers.append([self._dataset_fill_missing_value_based_on_criteria, parameter_name, filter_criteria])
@@ -223,7 +232,7 @@ class DatasetModifier:
             elif len(X_modifier) == 4:
                 X_modifier[0](dataset, X_modifier[1], X_modifier[2], X_modifier[3])
         
-        if dataset.isTrainData:
+        if dataset.is_train_data:
             for Y_modifier in self._Y_modifiers:
                 # TODO: This can probably be made better
                 if len(Y_modifier) == 1:

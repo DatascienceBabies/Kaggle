@@ -41,64 +41,101 @@ def live_plot(data_dict, figsize=(15,5), title=''):
 def extract_title_from_name(row):
     return row['Name'].split(',')[1].split('.')[0].strip()
 
+# Load the train/test dataset
+dataset = ds.Dataset(is_train_data = True)
+dataset.load_dataset_from_csv('train.csv')
+
+# Load the prediction dataset
+dataset_prediction = ds.Dataset(is_train_data = False)
+dataset_prediction.load_dataset_from_csv('test.csv')
+
 # Define the parameter creation steps
 datasetModifier = dsm.DatasetModifier()
-#datasetModifier.dataset_randomize()
+datasetModifier.dataset_randomize()
 
 #datasetModifier.dataset_remove_all_missing_values('Age')
-datasetModifier.dataset_fill_missing_value('Age', 30)
-# Filter out boy children
-#datasetModifier.dataset_generic_modification('dataset.dataset = dataset.dataset.drop(dataset.dataset[dataset.dataset.Age > 10].index)')
-#datasetModifier.dataset_generic_modification('dataset.dataset = dataset.dataset.drop(dataset.dataset[dataset.dataset.Sex == \'female\'].index)')
-datasetModifier.dataset_add_boolean_parameter(
-    'boyChild', [['Sex', '==', 'male'], ['Age', '<=', 10]])
-datasetModifier.add_X_parameter('boyChild')
+datasetModifier.dataset_fill_missing_value('Age')
+#datasetModifier.dataset_add_boolean_parameter(
+#    'boyChild', [['Sex', '==', 'male'], ['Age', '<=', 10]])
+#datasetModifier.add_X_parameter('boyChild')
+#datasetModifier.one_hot_X_parameter('boyChild')
+
+#datasetModifier.dataset_add_boolean_parameter(
+#    'teenMan', [['Sex', '==', 'male'], ['Age', '>', 10], ['Age', '<', 18]])
+#datasetModifier.add_X_parameter('teenMan')
+#datasetModifier.one_hot_X_parameter('teenMan')
+
+#datasetModifier.dataset_add_boolean_parameter(
+#    'grownMan', [['Sex', '==', 'male'], ['Age', '>', 18]])
+#datasetModifier.add_X_parameter('grownMan')
+#datasetModifier.one_hot_X_parameter('grownMan')
 
 #datasetModifier.dataset_categorize_number('Age', [['child1', 0, 3], ['child2', 3, 6], ['child3', 6, 9], ['child4', 9, 12], ['teenager', 13, 18], ['youngadult', 18, 40], ['midlife', 40, 55], ['oldfart', 55, math.inf]])
 #datasetModifier.dataset_categorize_number('Age', [['child', 0, 5], ['adult', 5, math.inf]])
 #datasetModifier.add_X_parameter('Age')
 #datasetModifier.one_hot_X_parameter('Age')
 
-#datasetModifier.add_X_parameter('Pclass')
-#datasetModifier.one_hot_X_parameter('Pclass')
+datasetModifier.add_X_parameter('Age')
 
-#datasetModifier.add_X_parameter('Sex')
-#datasetModifier.one_hot_X_parameter('Sex')
+datasetModifier.add_X_parameter('Pclass')
+datasetModifier.one_hot_X_parameter('Pclass')
 
-#datasetModifier.dataset_fill_missing_value('Fare', 15)
-#datasetModifier.add_X_parameter('Fare')
+datasetModifier.add_X_parameter('Sex')
+datasetModifier.one_hot_X_parameter('Sex')
 
-datasetModifier.dataset_fill_missing_value('Embarked', 'S')
-datasetModifier.add_X_parameter('Embarked')
-datasetModifier.one_hot_X_parameter('Embarked')
+datasetModifier.dataset_add_boolean_parameter(
+    'ManFromS', [['Sex', '==', 'male'], ['Embarked', '==', 'S']])
+datasetModifier.add_X_parameter('ManFromS')
+#datasetModifier.one_hot_X_parameter('ManFromS')
 
-#datasetModifier.add_X_parameter('SibSp')
+datasetModifier.dataset_add_boolean_parameter(
+    'ManFromQ', [['Sex', '==', 'male'], ['Embarked', '==', 'Q']])
+datasetModifier.add_X_parameter('ManFromQ')
+#datasetModifier.one_hot_X_parameter('ManFromQ')
 
-#datasetModifier.add_X_parameter('Parch')
+datasetModifier.dataset_add_boolean_parameter(
+    'ManFromC', [['Sex', '==', 'male'], ['Embarked', '==', 'C']])
+datasetModifier.add_X_parameter('ManFromC')
+#datasetModifier.one_hot_X_parameter('ManFromC')
 
-datasetModifier.dataset_add_new_feature_based_on_custom_function('Title', extract_title_from_name)
-datasetModifier.add_X_parameter('Title')
-datasetModifier.one_hot_X_parameter('Title')
+datasetModifier.dataset_add_boolean_parameter(
+    'WomanFromS', [['Sex', '==', 'male'], ['Embarked', '==', 'S']])
+datasetModifier.add_X_parameter('WomanFromS')
+#datasetModifier.one_hot_X_parameter('WomanFromS')
 
-datasetModifier.standardize_X()
+datasetModifier.dataset_add_boolean_parameter(
+    'WomanFromQ', [['Sex', '==', 'male'], ['Embarked', '==', 'Q']])
+datasetModifier.add_X_parameter('WomanFromQ')
+#datasetModifier.one_hot_X_parameter('WomanFromQ')
+
+datasetModifier.dataset_add_boolean_parameter(
+    'WomanFromC', [['Sex', '==', 'male'], ['Embarked', '==', 'C']])
+datasetModifier.add_X_parameter('WomanFromC')
+#datasetModifier.one_hot_X_parameter('WomanFromC')
+
+datasetModifier.dataset_fill_missing_value('Fare')
+datasetModifier.add_X_parameter('Fare')
+
+#datasetModifier.dataset_fill_missing_value('Embarked', 'S')
+#datasetModifier.add_X_parameter('Embarked')
+#datasetModifier.one_hot_X_parameter('Embarked')
+
+datasetModifier.add_X_parameter('SibSp')
+
+datasetModifier.add_X_parameter('Parch')
+
+#datasetModifier.dataset_add_new_feature_based_on_custom_function('Title', extract_title_from_name)
+#datasetModifier.add_X_parameter('Title')
+#datasetModifier.one_hot_X_parameter('Title')
+
+datasetModifier.standardize_X(dataset)
 
 datasetModifier.add_Y_parameter('Survived')
 
-datasetModifier.X_Y_generate_balanced_data()
-
-
-
-# Load the train/test dataset
-dataset = ds.Dataset(isTrainData = True)
-dataset.load_dataset_from_csv('train.csv')
-
-# Load the prediction dataset
-dataset_prediction = ds.Dataset(isTrainData = False)
-dataset_prediction.load_dataset_from_csv('test.csv')
+#datasetModifier.X_Y_generate_balanced_data()
 
 # Apply the parameter creation steps to the two datasets
 datasetModifier.generate_dataset(dataset)
-
 datasetModifier.generate_dataset(dataset_prediction)
 
 # Fetch the train and test set data
@@ -112,23 +149,23 @@ test_passenger_ids = np.reshape(test_passenger_ids.values, (test_passenger_ids.s
 
 # In[20]: Define binary classification model
 
-optimizer = Adam(lr=0.00001)
+optimizer = Adam(lr=0.000010)
 model = Sequential()
-model.add(Dense(30, activation='relu', input_dim=train_X.shape[1]))
-model.add(Dense(30))
-model.add(Dense(30))
-model.add(Dense(30))
-model.add(Dense(1, activation='sigmoid'))
+model.add(Dense(120, activation='relu', input_dim=train_X.shape[1]))
+model.add(Dense(120))
+model.add(Dense(120))
+model.add(Dense(120))
+model.add(Dense(1, activation='linear'))
 model.compile(optimizer=optimizer,
-              loss='binary_crossentropy',
+              loss='mean_squared_error',
               metrics=['accuracy'])
 
 
 # In[21]:
 # Train the model
 plotData = collections.defaultdict(list)
-for i in range(100):
-    model.fit(train_X, train_Y, epochs=1, batch_size=32)
+for i in range(200):
+    model.fit(train_X, train_Y, epochs=1, batch_size=64)
     loss_train = model.evaluate(train_X, train_Y)[0]
     loss_test = model.evaluate(test_X, test_Y)[0]
 
