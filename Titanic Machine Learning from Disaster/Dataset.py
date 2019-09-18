@@ -14,17 +14,48 @@ class Dataset:
     Y = pd.DataFrame()
 
     # True is this is training data with Y, false if this is prediction data
-    is_train_data = False
+    has_Y_param = False
 
-    def __init__(self, is_train_data):
+    def __init__(self, has_Y_param):
         self.dataset = pd.DataFrame()
         self.X = pd.DataFrame()
         self.Y = pd.DataFrame()
-        self.is_train_data = is_train_data
+        self.has_Y_param = has_Y_param
 
     # Loads a dataset from csv into dataset
     def load_dataset_from_csv(self, file_path):
         self.dataset = pd.read_csv(file_path)
+
+    # Loads a dataset by sending in the panda dataframes for it
+    def _load_dataset_from_pandas(self, dataset, X, Y):
+        self.dataset = dataset
+        self.X = X
+        self.Y = Y
+
+    # Divides this dataset into two according to the ratio size provided (0 - 1) and returns them
+    # The returned rows are randomly selected
+    def divide_dataset(self, ratio):
+        ds1 = self.dataset.sample(frac = ratio)
+        ds2 = self.dataset.drop(ds1.index)
+        X1 = pd.DataFrame()
+        X2 = pd.DataFrame()
+        Y1 = pd.DataFrame()
+        Y2 = pd.DataFrame()
+
+        if self.X.shape[0] > 0:
+            X1 = self.X.drop(ds2.index)
+            X2 = self.X.drop(ds1.index)
+
+        if self.Y.shape[0] > 0:
+            Y1 = self.Y.drop(ds2.index)
+            Y2 = self.Y.drop(ds1.index)
+
+        dataset1 = Dataset(self.has_Y_param)
+        dataset2 = Dataset(self.has_Y_param)
+        dataset1._load_dataset_from_pandas(ds1, X1, Y1)
+        dataset2._load_dataset_from_pandas(ds2, X2, Y2)
+
+        return dataset1, dataset2
 
     def get_dataset_parameter(self, parameter_name):
         return self.dataset[parameter_name]

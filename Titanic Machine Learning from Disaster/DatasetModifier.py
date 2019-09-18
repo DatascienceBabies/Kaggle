@@ -63,13 +63,16 @@ class DatasetModifier:
         self._X_scaler.fit(dataset_fit[train_numerical_features])
         dataset.X[train_numerical_features] = self._X_scaler.transform(dataset_train[train_numerical_features])
 
-    def _dataset_fill_missing_value(self, dataset, parameter_name):
+    def _dataset_fill_missing_value(self, dataset, parameter_name, static_value):
         data = dataset.dataset[parameter_name]
-        mean = data.mean()
-        std = data.std()
-        is_null = data.isnull().sum()
-        rand_values = np.random.normal(mean, std, (is_null))
-        dataset.dataset[parameter_name].values[np.where(data.isnull())[0]] = rand_values
+        if static_value == None:            
+            mean = data.mean()
+            std = data.std()
+            is_null = data.isnull().sum()
+            rand_values = np.random.normal(mean, std, (is_null))            
+            dataset.dataset[parameter_name].values[np.where(data.isnull())[0]] = rand_values
+        else:
+            dataset.dataset[parameter_name].values[np.where(data.isnull())[0]] = static_value
 
     def _dataset_fill_missing_value_based_on_criteria(self, dataset, parameter_name, filter_criteria):
         if parameter_name in dataset.dataset:
@@ -193,8 +196,8 @@ class DatasetModifier:
         self._X_modifiers.append([self._standardize_X, standardization_dataset])
 
     # Fills in a random standard deviation value to any missing value field of a parameter
-    def dataset_fill_missing_value(self, parameter_name):
-        self._Dataset_modifiers.append([self._dataset_fill_missing_value, parameter_name])
+    def dataset_fill_missing_value(self, parameter_name, static_value = None):
+        self._Dataset_modifiers.append([self._dataset_fill_missing_value, parameter_name, static_value])
 
     def dataset_fill_missing_value_based_on_criteria(self, parameter_name, filter_criteria):
         self._Dataset_modifiers.append([self._dataset_fill_missing_value_based_on_criteria, parameter_name, filter_criteria])
@@ -241,7 +244,7 @@ class DatasetModifier:
             elif len(X_modifier) == 4:
                 X_modifier[0](dataset, X_modifier[1], X_modifier[2], X_modifier[3])
         
-        if dataset.is_train_data:
+        if dataset.has_Y_param:
             for Y_modifier in self._Y_modifiers:
                 # TODO: This can probably be made better
                 if len(Y_modifier) == 1:
