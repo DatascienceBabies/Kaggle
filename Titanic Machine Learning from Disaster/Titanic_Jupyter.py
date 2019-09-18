@@ -42,11 +42,13 @@ def extract_title_from_name(row):
     return row['Name'].split(',')[1].split('.')[0].strip()
 
 # Load the train/test dataset
-dataset = ds.Dataset(is_train_data = True)
-dataset.load_dataset_from_csv('train.csv')
+dataset_orig = ds.Dataset(has_Y_param = True)
+dataset_orig.load_dataset_from_csv('train.csv')
+dataset_train, dataset_test = dataset_orig.divide_dataset(0.8)
+dataset_orig = None
 
 # Load the prediction dataset
-dataset_prediction = ds.Dataset(is_train_data = False)
+dataset_prediction = ds.Dataset(has_Y_param = False)
 dataset_prediction.load_dataset_from_csv('test.csv')
 
 # Define the parameter creation steps
@@ -86,86 +88,97 @@ datasetModifier.one_hot_X_parameter('Sex')
 datasetModifier.dataset_add_boolean_parameter(
     'ManFromS', [['Sex', '==', 'male'], ['Embarked', '==', 'S']])
 datasetModifier.add_X_parameter('ManFromS')
-#datasetModifier.one_hot_X_parameter('ManFromS')
+datasetModifier.one_hot_X_parameter('ManFromS')
 
 datasetModifier.dataset_add_boolean_parameter(
     'ManFromQ', [['Sex', '==', 'male'], ['Embarked', '==', 'Q']])
 datasetModifier.add_X_parameter('ManFromQ')
-#datasetModifier.one_hot_X_parameter('ManFromQ')
+datasetModifier.one_hot_X_parameter('ManFromQ')
 
 datasetModifier.dataset_add_boolean_parameter(
     'ManFromC', [['Sex', '==', 'male'], ['Embarked', '==', 'C']])
 datasetModifier.add_X_parameter('ManFromC')
-#datasetModifier.one_hot_X_parameter('ManFromC')
+datasetModifier.one_hot_X_parameter('ManFromC')
 
 datasetModifier.dataset_add_boolean_parameter(
     'WomanFromS', [['Sex', '==', 'male'], ['Embarked', '==', 'S']])
 datasetModifier.add_X_parameter('WomanFromS')
-#datasetModifier.one_hot_X_parameter('WomanFromS')
+datasetModifier.one_hot_X_parameter('WomanFromS')
 
 datasetModifier.dataset_add_boolean_parameter(
     'WomanFromQ', [['Sex', '==', 'male'], ['Embarked', '==', 'Q']])
 datasetModifier.add_X_parameter('WomanFromQ')
-#datasetModifier.one_hot_X_parameter('WomanFromQ')
+datasetModifier.one_hot_X_parameter('WomanFromQ')
 
 datasetModifier.dataset_add_boolean_parameter(
     'WomanFromC', [['Sex', '==', 'male'], ['Embarked', '==', 'C']])
 datasetModifier.add_X_parameter('WomanFromC')
-#datasetModifier.one_hot_X_parameter('WomanFromC')
+datasetModifier.one_hot_X_parameter('WomanFromC')
 
 datasetModifier.dataset_fill_missing_value('Fare')
 datasetModifier.add_X_parameter('Fare')
 
-#datasetModifier.dataset_fill_missing_value('Embarked', 'S')
-#datasetModifier.add_X_parameter('Embarked')
-#datasetModifier.one_hot_X_parameter('Embarked')
+datasetModifier.dataset_fill_missing_value('Embarked', 'S')
+datasetModifier.add_X_parameter('Embarked')
+datasetModifier.one_hot_X_parameter('Embarked')
 
+datasetModifier.dataset_fill_missing_value('SibSp')
 datasetModifier.add_X_parameter('SibSp')
+datasetModifier.one_hot_X_parameter('SibSp')
 
+datasetModifier.dataset_fill_missing_value('Parch')
 datasetModifier.add_X_parameter('Parch')
+datasetModifier.one_hot_X_parameter('Parch')
 
 #datasetModifier.dataset_add_new_feature_based_on_custom_function('Title', extract_title_from_name)
 #datasetModifier.add_X_parameter('Title')
 #datasetModifier.one_hot_X_parameter('Title')
 
-datasetModifier.standardize_X(dataset)
+#datasetModifier.standardize_X(dataset_train)
 
 datasetModifier.add_Y_parameter('Survived')
 
 #datasetModifier.X_Y_generate_balanced_data()
 
 # Apply the parameter creation steps to the two datasets
-datasetModifier.generate_dataset(dataset)
+datasetModifier.generate_dataset(dataset_train)
+datasetModifier.generate_dataset(dataset_test)
 datasetModifier.generate_dataset(dataset_prediction)
 
 # Fetch the train and test set data
-train_X, test_X = dataset.get_X_train_test_sets(0.2)
-train_Y, test_Y = dataset.get_Y_train_test_sets(0.2)
+train_X = dataset_train.X.values
+train_Y = dataset_train.Y.values
+test_X = dataset_test.X.values
+test_Y = dataset_test.Y.values
 
 # Fetch the predict set data
-predict_X, _ = dataset_prediction.get_X_train_test_sets(0)
+predict_X = dataset_prediction.X.values
 test_passenger_ids = dataset_prediction.get_dataset_parameter('PassengerId')
 test_passenger_ids = np.reshape(test_passenger_ids.values, (test_passenger_ids.shape[0], 1))
 
 # In[20]: Define binary classification model
 
-optimizer = Adam(lr=0.000010)
+optimizer = Adam(lr=0.000110)
 model = Sequential()
-model.add(Dense(120, activation='relu', input_dim=train_X.shape[1]))
-model.add(Dense(120))
-model.add(Dense(120))
-model.add(Dense(120))
-model.add(Dense(1, activation='linear'))
+model.add(Dense(1000, activation='relu', input_dim=train_X.shape[1]))
+#model.add(Dropout(0.3))
+model.add(Dense(1000))
+model.add(Dense(1000))
+model.add(Dense(1000))
+model.add(Dense(1000))
+model.add(Dense(1000))
+#model.add(Dropout(0.3))
+model.add(Dense(1, activation='sigmoid'))
 model.compile(optimizer=optimizer,
               loss='mean_squared_error',
               metrics=['accuracy'])
 
+plotData = collections.defaultdict(list)
 
 # In[21]:
 # Train the model
-plotData = collections.defaultdict(list)
-for i in range(200):
-    model.fit(train_X, train_Y, epochs=1, batch_size=64)
+for i in range(50):
+    model.fit(train_X, train_Y, epochs=40, batch_size=64, verbose=0)
     loss_train = model.evaluate(train_X, train_Y)[0]
     loss_test = model.evaluate(test_X, test_Y)[0]
 
