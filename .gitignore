@@ -1,5 +1,5 @@
 /Titanic Machine Learning from Disaster/prediction.csv
 .vs/*
 **/.vscode/*
-Titanic Machine Learning from Disaster/.ipynb_checkpoints/*
-/Titanic Machine Learning from Disaster/__pycache__/*
+**/.ipynb_checkpoints/*
+**/__pycache__/*
