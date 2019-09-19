@@ -1,7 +1,22 @@
 # Kaggle
-Kaggleeeeeeeeeeeee
 
-Environment:
+## Utils
+The subfolder *util* contains datastructures that are used to generically manipulate with data and allow to reduce boilerplate code in every new project.
+
+Import as follows:
+
+    import os
+	import sys	
+	current_dir = os.getcwd()
+	util_path = os.path.join(os.path.dirname(current_dir), '', 'util')
+	sys.path.append(util_path)
+	import Dataset as ds
+	import DatasetModifier as dsm
+	import Classifications as classifications
+	...
+
+
+## Environment
 Anaconda is recommended because it makes it easier to setup and handle different datasciency python environments
 
 For Nvidia GPU setup:

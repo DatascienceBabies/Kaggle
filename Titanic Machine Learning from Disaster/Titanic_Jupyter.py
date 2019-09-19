@@ -17,6 +17,12 @@ import math
 from matplotlib import pyplot as plt
 import collections
 from IPython.display import clear_output
+
+import os
+import sys
+current_dir = os.getcwd()
+util_path = os.path.join(os.path.dirname(current_dir), '', 'util')
+sys.path.append(util_path)
 import Dataset as ds
 import DatasetModifier as dsm
 
