@@ -19,6 +19,9 @@ import collections
 from IPython.display import clear_output
 import Dataset as ds
 import DatasetModifier as dsm
+from keras.callbacks import ModelCheckpoint
+import sys
+import time
 
 
 # In[3]:
@@ -44,7 +47,7 @@ def extract_title_from_name(row):
 # Load the train/test dataset
 dataset_orig = ds.Dataset(has_Y_param = True)
 dataset_orig.load_dataset_from_csv('train.csv')
-dataset_train, dataset_test = dataset_orig.divide_dataset(0.8)
+dataset_train, dataset_test = dataset_orig.divide_dataset(0.80)
 dataset_orig = None
 
 # Load the prediction dataset
@@ -55,8 +58,40 @@ dataset_prediction.load_dataset_from_csv('test.csv')
 datasetModifier = dsm.DatasetModifier()
 datasetModifier.dataset_randomize()
 
+# Define the parameter creation steps
+datasetModifier.dataset_fill_missing_value_based_on_criteria('Age', ['Sex', 'Pclass'])
+#datasetModifier.dataset_categorize_number('Age', [['0', 0, 16], ['1', 16, 32], ['2', 32, 48], ['3', 48, 64], ['4', 64, math.inf]])
+datasetModifier.dataset_categorize_number('Age', [['infant', 0, 2], ['child', 2, 10], ['teenager', 10, 18], ['youngadult', 18, 30], ['midlife', 30, 50], ['oldfart', 50, math.inf]])
+#datasetModifier.dataset_fill_missing_value('Age')
+datasetModifier.add_X_parameter('Age')
+datasetModifier.one_hot_X_parameter('Age')
+
+datasetModifier.add_X_parameter('Sex')
+datasetModifier.one_hot_X_parameter('Sex')
+
+datasetModifier.dataset_add_new_feature_based_on_existing('FamilySize', ['SibSp', 'Parch'])
+datasetModifier.add_X_parameter('FamilySize')
+
+datasetModifier.dataset_add_new_feature_based_on_custom_function('Title', extract_title_from_name)
+datasetModifier.add_X_parameter('Title')
+datasetModifier.one_hot_X_parameter('Title')
+
+#datasetModifier.dataset_fill_missing_value('Fare')
+datasetModifier.dataset_fill_missing_value_based_on_criteria('Fare', ['Sex', 'Pclass', 'Title'])
+#datasetModifier.dataset_categorize_number('Fare', [['poor feck', 0, 10], ['middle class', 10, 50], ['richy rich', 50, math.inf]])
+datasetModifier.add_X_parameter('Fare')
+#datasetModifier.one_hot_X_parameter('Fare')
+
+datasetModifier.dataset_fill_missing_value('Embarked', 'S')
+datasetModifier.add_X_parameter('Embarked')
+datasetModifier.one_hot_X_parameter('Embarked')
+
+#datasetModifier.standardize_X(dataset)
+
+datasetModifier.add_Y_parameter('Survived')
+
 #datasetModifier.dataset_remove_all_missing_values('Age')
-datasetModifier.dataset_fill_missing_value('Age')
+#datasetModifier.dataset_fill_missing_value('Age')
 #datasetModifier.dataset_add_boolean_parameter(
 #    'boyChild', [['Sex', '==', 'male'], ['Age', '<=', 10]])
 #datasetModifier.add_X_parameter('boyChild')
@@ -77,58 +112,58 @@ datasetModifier.dataset_fill_missing_value('Age')
 #datasetModifier.add_X_parameter('Age')
 #datasetModifier.one_hot_X_parameter('Age')
 
-datasetModifier.add_X_parameter('Age')
+#datasetModifier.add_X_parameter('Age')
 
-datasetModifier.add_X_parameter('Pclass')
-datasetModifier.one_hot_X_parameter('Pclass')
+#datasetModifier.add_X_parameter('Pclass')
+#datasetModifier.one_hot_X_parameter('Pclass')
 
-datasetModifier.add_X_parameter('Sex')
-datasetModifier.one_hot_X_parameter('Sex')
+#datasetModifier.add_X_parameter('Sex')
+#datasetModifier.one_hot_X_parameter('Sex')
 
 datasetModifier.dataset_add_boolean_parameter(
     'ManFromS', [['Sex', '==', 'male'], ['Embarked', '==', 'S']])
 datasetModifier.add_X_parameter('ManFromS')
-datasetModifier.one_hot_X_parameter('ManFromS')
+#datasetModifier.one_hot_X_parameter('ManFromS')
 
 datasetModifier.dataset_add_boolean_parameter(
     'ManFromQ', [['Sex', '==', 'male'], ['Embarked', '==', 'Q']])
 datasetModifier.add_X_parameter('ManFromQ')
-datasetModifier.one_hot_X_parameter('ManFromQ')
+#datasetModifier.one_hot_X_parameter('ManFromQ')
 
 datasetModifier.dataset_add_boolean_parameter(
     'ManFromC', [['Sex', '==', 'male'], ['Embarked', '==', 'C']])
 datasetModifier.add_X_parameter('ManFromC')
-datasetModifier.one_hot_X_parameter('ManFromC')
+#datasetModifier.one_hot_X_parameter('ManFromC')
 
 datasetModifier.dataset_add_boolean_parameter(
     'WomanFromS', [['Sex', '==', 'male'], ['Embarked', '==', 'S']])
 datasetModifier.add_X_parameter('WomanFromS')
-datasetModifier.one_hot_X_parameter('WomanFromS')
+#datasetModifier.one_hot_X_parameter('WomanFromS')
 
 datasetModifier.dataset_add_boolean_parameter(
     'WomanFromQ', [['Sex', '==', 'male'], ['Embarked', '==', 'Q']])
 datasetModifier.add_X_parameter('WomanFromQ')
-datasetModifier.one_hot_X_parameter('WomanFromQ')
+#datasetModifier.one_hot_X_parameter('WomanFromQ')
 
 datasetModifier.dataset_add_boolean_parameter(
     'WomanFromC', [['Sex', '==', 'male'], ['Embarked', '==', 'C']])
 datasetModifier.add_X_parameter('WomanFromC')
-datasetModifier.one_hot_X_parameter('WomanFromC')
+#datasetModifier.one_hot_X_parameter('WomanFromC')
 
-datasetModifier.dataset_fill_missing_value('Fare')
-datasetModifier.add_X_parameter('Fare')
+#datasetModifier.dataset_fill_missing_value('Fare')
+#datasetModifier.add_X_parameter('Fare')
 
-datasetModifier.dataset_fill_missing_value('Embarked', 'S')
-datasetModifier.add_X_parameter('Embarked')
-datasetModifier.one_hot_X_parameter('Embarked')
+#datasetModifier.dataset_fill_missing_value('Embarked', 'S')
+#datasetModifier.add_X_parameter('Embarked')
+#datasetModifier.one_hot_X_parameter('Embarked')
 
-datasetModifier.dataset_fill_missing_value('SibSp')
-datasetModifier.add_X_parameter('SibSp')
-datasetModifier.one_hot_X_parameter('SibSp')
+#datasetModifier.dataset_fill_missing_value('SibSp')
+#datasetModifier.add_X_parameter('SibSp')
+#datasetModifier.one_hot_X_parameter('SibSp')
 
-datasetModifier.dataset_fill_missing_value('Parch')
-datasetModifier.add_X_parameter('Parch')
-datasetModifier.one_hot_X_parameter('Parch')
+#datasetModifier.dataset_fill_missing_value('Parch')
+#datasetModifier.add_X_parameter('Parch')
+#datasetModifier.one_hot_X_parameter('Parch')
 
 #datasetModifier.dataset_add_new_feature_based_on_custom_function('Title', extract_title_from_name)
 #datasetModifier.add_X_parameter('Title')
@@ -158,40 +193,57 @@ test_passenger_ids = np.reshape(test_passenger_ids.values, (test_passenger_ids.s
 
 # In[20]: Define binary classification model
 
-optimizer = Adam(lr=0.000110)
+optimizer = Adam(lr=0.00010, decay=0.0005)
 model = Sequential()
-model.add(Dense(1000, activation='relu', input_dim=train_X.shape[1]))
-#model.add(Dropout(0.3))
-model.add(Dense(1000))
-model.add(Dense(1000))
-model.add(Dense(1000))
-model.add(Dense(1000))
-model.add(Dense(1000))
-#model.add(Dropout(0.3))
+model.add(Dense(50, activation='relu', input_dim=train_X.shape[1]))
+model.add(Dropout(0.1))
+model.add(Dense(50))
+model.add(Dropout(0.1))
+model.add(Dense(50))
+model.add(Dropout(0.1))
+model.add(Dense(50))
+model.add(Dropout(0.1))
 model.add(Dense(1, activation='sigmoid'))
 model.compile(optimizer=optimizer,
               loss='mean_squared_error',
               metrics=['accuracy'])
 
+# checkpoint
+filepath="weights.best.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+best_test_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
+model.save('model')
+
+start = time.time()
 
 # In[21]:
 # Train the model
-for i in range(50):
-    model.fit(train_X, train_Y, epochs=40, batch_size=64, verbose=0)
-    loss_train = model.evaluate(train_X, train_Y)[0]
-    loss_test = model.evaluate(test_X, test_Y)[0]
+for i in range(60000):
+    model.fit(train_X, train_Y, epochs=20, batch_size=train_X.shape[0], verbose=0)
+    loss_train = model.evaluate(train_X, train_Y, verbose=0)[0]
+    loss_test = model.evaluate(test_X, test_Y, verbose=0)[0]
 
-    accuracy_train = np.sum(train_Y == np.around(model.predict(train_X)).astype(np.bool)) / train_X.shape[0]
-    accuracy_test = np.sum(test_Y == np.around(model.predict(test_X)).astype(np.bool)) / test_X.shape[0]
+    accuracy_train = np.sum(train_Y == np.around(model.predict(train_X, verbose=0)).astype(np.bool)) / train_X.shape[0]
+    accuracy_test = np.sum(test_Y == np.around(model.predict(test_X, verbose=0)).astype(np.bool)) / test_X.shape[0]
 
     plotData['loss_train'].append(loss_train)
     plotData['loss_test'].append(loss_test)
 
     plotData['accuracy_train'].append(accuracy_train)
-    plotData['accuracy_test'].append(accuracy_test)    
+    plotData['accuracy_test'].append(accuracy_test)
 
-live_plot(plotData)
+    if best_test_loss > loss_test:
+        best_test_loss = loss_test
+        model.save_weights('best_model_weights')
+        print("New best test loss!")
+        live_plot(plotData)
+        print("AT:", round(accuracy_test, 5), " LT: ", round(loss_test, 5))
+
+    if time.time() - start > 60:
+        start = time.time()
+        live_plot(plotData)
+        print("AT:", round(accuracy_test, 5), " LT: ", round(loss_test, 5))        
 
 # In[ ]:
 
