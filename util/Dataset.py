@@ -26,6 +26,12 @@ class Dataset:
     def load_dataset_from_csv(self, file_path):
         self.dataset = pd.read_csv(file_path)
 
+    # Uses the pandas dataset provided
+    def load_dataset_from_pandas_dataset(self, dataset):
+        self.dataset = dataset
+        self.X = pd.DataFrame()
+        self.y = pd.DataFrame()
+
     # Loads a dataset by sending in the panda dataframes for it
     def _load_dataset_from_pandas(self, dataset, X, Y):
         self.dataset = dataset
