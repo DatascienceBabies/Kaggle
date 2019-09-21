@@ -13,4 +13,3 @@ Use the kaggle page to download it or use the kaggle api:
 	kaggle competitions download -c rsna-intracranial-hemorrhage-detection
 	
 You will have to export an API token from your account settings before you can use the api. Check the [kaggle-api-github](https://github.com/Kaggle/kaggle-api) for more info.
-
