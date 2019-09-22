@@ -30,6 +30,7 @@ import sys
 import time
 import Data_Generator
 import BatchDataset as bds
+from keras.layers import AveragePooling2D
 
 
 # In[3]: Creates a live plot which is shown while a cell is being run
@@ -57,7 +58,7 @@ def live_image(image):
 
 
 #%% Define dataset
-batch_size = 30
+batch_size = 50
 image_width = 512
 image_height = 512
 
@@ -79,23 +80,31 @@ data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_wi
 model = Sequential()
 #add model layers
 # TODO: Fix the width and height to be dynamic
-model.add(Conv2D(5, kernel_size=3, activation='relu', input_shape=(512,512,1)))
-model.add(Conv2D(5, kernel_size=3, activation='relu'))
+model.add(Conv2D(16, kernel_size=3, activation='relu', input_shape=(512,512,1)))
+model.add(AveragePooling2D(pool_size=(2, 2)))
+model.add(Conv2D(16, kernel_size=3, activation='relu'))
+model.add(AveragePooling2D(pool_size=(2, 2)))
+model.add(Conv2D(32, kernel_size=3, activation='relu'))
+model.add(AveragePooling2D(pool_size=(2, 2)))
 model.add(Flatten())
-model.add(Dense(2, activation='softmax'))
+model.add(Dense(64))
+model.add(Dense(1, activation='sigmoid'))
+
+optimizer = Adam(lr=0.00010, decay=0.0005)
 
 #compile model using accuracy to measure model performance
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
 
 # In[21]:
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    validation_step_size = 50
+    steps_per_epoch_size = 30
+    validation_step_size = 10
 
     model.fit_generator(generator=data_generator_train,
-                        steps_per_epoch=1,
-                        epochs=1,
+                        steps_per_epoch=steps_per_epoch_size,
+                        epochs=100,
                         verbose=1,
                         validation_data=data_generator_test,
                         #validation_steps=batch_dataset_test.batch_amount(),

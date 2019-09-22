@@ -45,6 +45,12 @@ class Data_Generator(Sequence):
         # Move to positive pixel values (not needed as long as we do not convert to Hounsfield units?)
         if image.min() < 0:
             image = image - image.min()
+
+        if np.isnan(image).any():
+            print('We are fucked!')
+
+        # Normalize to 0-1 range
+        image = image / image.max()
         
         return np.expand_dims(np.array(image, dtype=np.int16), 2)
 
