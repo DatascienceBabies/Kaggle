@@ -58,7 +58,7 @@ def live_image(image):
 
 
 #%% Define dataset
-batch_size = 50
+batch_size = 20
 image_width = 512
 image_height = 512
 
@@ -80,17 +80,19 @@ data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_wi
 model = Sequential()
 #add model layers
 # TODO: Fix the width and height to be dynamic
-model.add(Conv2D(16, kernel_size=3, activation='relu', input_shape=(512,512,1)))
+model.add(Conv2D(32, kernel_size=3, activation='relu', input_shape=(512,512,1)))
 model.add(AveragePooling2D(pool_size=(2, 2)))
-model.add(Conv2D(16, kernel_size=3, activation='relu'))
+model.add(Conv2D(32, kernel_size=3))
 model.add(AveragePooling2D(pool_size=(2, 2)))
-model.add(Conv2D(32, kernel_size=3, activation='relu'))
+model.add(Conv2D(32, kernel_size=3))
 model.add(AveragePooling2D(pool_size=(2, 2)))
 model.add(Flatten())
-model.add(Dense(64))
+model.add(Dense(128))
+model.add(Dense(128))
+model.add(Dense(128))
 model.add(Dense(1, activation='sigmoid'))
 
-optimizer = Adam(lr=0.00010, decay=0.0005)
+optimizer = Adam(lr=0.00010, decay=0.0000)
 
 #compile model using accuracy to measure model performance
 model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
@@ -99,7 +101,7 @@ model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    steps_per_epoch_size = 30
+    steps_per_epoch_size = 300
     validation_step_size = 10
 
     model.fit_generator(generator=data_generator_train,
@@ -110,5 +112,5 @@ for i in range(60000):
                         #validation_steps=batch_dataset_test.batch_amount(),
                         validation_steps=validation_step_size,
                         use_multiprocessing=False,
-                        workers=1,
+                        workers=0,
                         max_queue_size=32)
