@@ -6,11 +6,12 @@ from keras.utils import Sequence
 import pydicom as dicom
 import os
 from keras.utils import to_categorical
+from sklearn.preprocessing import OneHotEncoder
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
     batch_dataset = None
-    batch_dataset = None
+    one_hot_encoder = None
 
     def open_dcm_image(self, picture_folder, ID):
         picture_path = os.path.join(picture_folder, ID[0:12] + ".dcm")
@@ -47,31 +48,34 @@ class Data_Generator(Sequence):
     def __init__(self, batch_dataset):
         self.batch_dataset = batch_dataset
 
+        # TODO: The categories should be configurable
+        # We need categories defined, as we cannot trust the auto-category with batch data
+        self.one_hot_encoder = OneHotEncoder(categories=[[0, 1]], handle_unknown='ignore')  
+
     def __len__(self):
         return self.batch_dataset.batch_amount()
 
     def __getitem__(self, idx):
-        # batch_x = self.image_filenames[idx * self.batch_size:(idx + 1) * self.batch_size]
-        # batch_y = self.labels[idx * self.batch_size:(idx + 1) * self.batch_size]
-
-        # return np.array([
-        #    resize(imread(file_name), (200, 200))
-        #       for file_name in batch_x]), np.array(batch_y)
-
         # Fetch the next csv chunk
         dataset_chunk = self.batch_dataset.get_next_chunk()
 
         # Add batch of image data as Y
         # Open first image to get width x height. Assume all other images to be same resolution
-        image_data = self.open_dcm_image('./data/stage_1_train_images/', dataset_chunk.dataset['ID'][0])
-        images_data = np.zeros((dataset_chunk.dataset.shape[0], image_data.shape[0], image_data.shape[1], 1))
-        for index in range(dataset_chunk.dataset.shape[0]):
-            images_data[index, :, :, :] = self.open_dcm_image('./data/stage_1_train_images/', dataset_chunk.dataset['ID'].iloc[index])
+        images_data = []
+        index = 0
+        for row in dataset_chunk.dataset.iterrows():
+            image_data = self.open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
+            if images_data == []:
+                images_data = np.zeros((dataset_chunk.dataset.shape[0], image_data.shape[0], image_data.shape[1], 1))
+
+            images_data[index, :, :, :] = self.open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
+            index = index + 1
 
         X = images_data
-        Y = to_categorical(dataset_chunk.dataset['any'].values)
+        # TODO: The output(s) should be definable, but for now just create a one hot out of the binary any
+        #Y = self.one_hot_encoder.fit_transform(dataset_chunk.dataset['any'].values.reshape(-1, 1))
+
+        # TODO: Having some problems, testing out a simpler Y
+        Y = dataset_chunk.dataset['any'].values
 
         return X, Y
-
-        # image_data = open_dcm_image('./data/stage_1_train_images/', dataset_chunk['ID'][0])
-        # live_image(image_data)
