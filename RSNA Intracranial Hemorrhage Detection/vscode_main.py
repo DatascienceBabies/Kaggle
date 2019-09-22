@@ -57,13 +57,15 @@ def live_image(image):
 
 
 #%% Define dataset
-batch_size = 2
+batch_size = 30
+image_width = 512
+image_height = 512
 
 batch_dataset_train = bds.BatchDataset('./stage_1_train_nice.csv', batch_size)
-data_generator_train = Data_Generator.Data_Generator(batch_dataset_train)
+data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height)
 
 batch_dataset_test = bds.BatchDataset('./stage_1_test_nice.csv', batch_size)
-data_generator_test = Data_Generator.Data_Generator(batch_dataset_test)
+data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height)
 
 
 
@@ -77,28 +79,19 @@ data_generator_test = Data_Generator.Data_Generator(batch_dataset_test)
 model = Sequential()
 #add model layers
 # TODO: Fix the width and height to be dynamic
-model.add(Conv2D(64, kernel_size=3, activation='relu', input_shape=(512,512,1)))
-model.add(Conv2D(32, kernel_size=3, activation='relu'))
+model.add(Conv2D(5, kernel_size=3, activation='relu', input_shape=(512,512,1)))
+model.add(Conv2D(5, kernel_size=3, activation='relu'))
 model.add(Flatten())
-model.add(Dense(1, activation='softmax'))
+model.add(Dense(2, activation='softmax'))
 
 #compile model using accuracy to measure model performance
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-# checkpoint
-filepath="weights.best.hdf5"
-checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-best_test_loss = sys.float_info.max
-plotData = collections.defaultdict(list)
-model.save('model')
-
-start = time.time()
 
 # In[21]:
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    validation_step_size = 5
+    validation_step_size = 50
 
     model.fit_generator(generator=data_generator_train,
                         steps_per_epoch=1,

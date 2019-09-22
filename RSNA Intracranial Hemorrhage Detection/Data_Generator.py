@@ -13,6 +13,8 @@ import cv2
 class Data_Generator(Sequence):
     batch_dataset = None
     one_hot_encoder = None
+    image_width = None
+    image_height = None
 
     def open_dcm_image(self, picture_folder, ID):
         picture_path = os.path.join(picture_folder, ID[0:12] + ".dcm")
@@ -46,8 +48,10 @@ class Data_Generator(Sequence):
         
         return np.expand_dims(np.array(image, dtype=np.int16), 2)
 
-    def __init__(self, batch_dataset):
+    def __init__(self, batch_dataset, image_width, image_height):
         self.batch_dataset = batch_dataset
+        self.image_width = image_width
+        self.image_height = image_height
 
         # TODO: The categories should be configurable
         # We need categories defined, as we cannot trust the auto-category with batch data
@@ -65,14 +69,15 @@ class Data_Generator(Sequence):
         images_data = []
         index = 0
         for row in dataset_chunk.dataset.iterrows():
+            # TODO: Send in width and height as constructor parameters
             image_data = self.open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
             if images_data == []:
-                images_data = np.zeros((dataset_chunk.dataset.shape[0], image_data.shape[0], image_data.shape[1], 1))
+                images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_width, self.image_height, 1))
 
-            if image_data.shape[0] != images_data.shape[1] or image_data.shape[1] != images_data.shape[2]:
-                res = cv2.resize(image_data, dsize=(images_data.shape[1], images_data.shape[2]), interpolation=cv2.INTER_CUBIC)
+            if image_data.shape[0] != self.image_width or image_data.shape[1] != self.image_height:
+                image_data = cv2.resize(image_data, dsize=(self.image_width, self.image_height), interpolation=cv2.INTER_CUBIC).reshape(self.image_width, self.image_height, image_data.shape[2])
 
-            images_data[index, :, :, :] = self.open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
+            images_data[index, :, :, :] = image_data
             index = index + 1
 
         X = images_data
