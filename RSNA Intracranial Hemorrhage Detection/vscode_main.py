@@ -97,12 +97,16 @@ start = time.time()
 # In[21]:
 # Train the model
 for i in range(60000):
+    # TODO: Temporarily reduce validation size to get faster tests while developing
+    validation_step_size = 5
+
     model.fit_generator(generator=data_generator_train,
                         steps_per_epoch=1,
                         epochs=1,
                         verbose=1,
                         validation_data=data_generator_test,
-                        validation_steps=batch_dataset_test.batch_amount(),
+                        #validation_steps=batch_dataset_test.batch_amount(),
+                        validation_steps=validation_step_size,
                         use_multiprocessing=False,
                         workers=1,
                         max_queue_size=32)

@@ -7,6 +7,7 @@ import pydicom as dicom
 import os
 from keras.utils import to_categorical
 from sklearn.preprocessing import OneHotEncoder
+import cv2
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
@@ -67,6 +68,9 @@ class Data_Generator(Sequence):
             image_data = self.open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
             if images_data == []:
                 images_data = np.zeros((dataset_chunk.dataset.shape[0], image_data.shape[0], image_data.shape[1], 1))
+
+            if image_data.shape[0] != images_data.shape[1] or image_data.shape[1] != images_data.shape[2]:
+                res = cv2.resize(image_data, dsize=(images_data.shape[1], images_data.shape[2]), interpolation=cv2.INTER_CUBIC)
 
             images_data[index, :, :, :] = self.open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
             index = index + 1
