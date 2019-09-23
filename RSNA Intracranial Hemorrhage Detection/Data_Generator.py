@@ -8,16 +8,31 @@ import os
 from keras.utils import to_categorical
 from sklearn.preprocessing import OneHotEncoder
 import cv2
+import zipfile
+import io
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
     batch_dataset = None
     one_hot_encoder = None
+    archive = None
+    base_image_path = ""
 
-    def open_dcm_image(self, picture_folder, ID):
-        picture_path = os.path.join(picture_folder, ID[0:12] + ".dcm")
+    def open_dcm_image(self, ID):
+        picture_path = os.path.join(self.base_image_path, ID[0:12] + ".dcm")
         dcm_image = dicom.dcmread(picture_path)
+        return self.get_dcm_image_data(dcm_image)
         
+        
+    def open_dcm_image_from_zip(self, ID):
+        file_path_within_zip = "{0}/{1}".format(self.base_image_path, ID[0:12] + ".dcm")
+        file = self.archive.read(file_path_within_zip)
+        file_bytes = io.BytesIO(file)
+        dcm_image = dicom.dcmread(file_bytes)
+        return self.get_dcm_image_data(dcm_image)
+
+
+    def get_dcm_image_data(self, dcm_image):
         # Access pixel data in more intelligent way for uncompressed images (recommended)
         image = dcm_image.pixel_array  # returns a NumPy array for uncompressed images
 
@@ -46,8 +61,12 @@ class Data_Generator(Sequence):
         
         return np.expand_dims(np.array(image, dtype=np.int16), 2)
 
-    def __init__(self, batch_dataset):
+    def __init__(self, batch_dataset, base_image_path="", zip_path=None):
         self.batch_dataset = batch_dataset
+        self.base_image_path = base_image_path
+        
+        if zip_path != None:
+            self.archive = zipfile.ZipFile(zip_path, 'r')
 
         # TODO: The categories should be configurable
         # We need categories defined, as we cannot trust the auto-category with batch data
@@ -65,14 +84,18 @@ class Data_Generator(Sequence):
         images_data = []
         index = 0
         for row in dataset_chunk.dataset.iterrows():
-            image_data = self.open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
+
+            if self.archive != None:
+                image_data = self.open_dcm_image_from_zip(row[1]['ID'])
+            else:
+                image_data = self.open_dcm_image(row[1]['ID'])
             if images_data == []:
                 images_data = np.zeros((dataset_chunk.dataset.shape[0], image_data.shape[0], image_data.shape[1], 1))
 
             if image_data.shape[0] != images_data.shape[1] or image_data.shape[1] != images_data.shape[2]:
                 res = cv2.resize(image_data, dsize=(images_data.shape[1], images_data.shape[2]), interpolation=cv2.INTER_CUBIC)
 
-            images_data[index, :, :, :] = self.open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
+            images_data[index, :, :, :] = image_data
             index = index + 1
 
         X = images_data

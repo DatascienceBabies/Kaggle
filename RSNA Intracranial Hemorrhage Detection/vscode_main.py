@@ -60,11 +60,29 @@ def live_image(image):
 batch_size = 2
 
 batch_dataset_train = bds.BatchDataset('./stage_1_train_nice.csv', batch_size)
-data_generator_train = Data_Generator.Data_Generator(batch_dataset_train)
+data_generator_train = Data_Generator.Data_Generator(
+    batch_dataset_train, 
+    'stage_1_train_images',
+    './data/rsna-intracranial-hemorrhage-detection.zip')
 
-batch_dataset_test = bds.BatchDataset('./stage_1_test_nice.csv', batch_size)
-data_generator_test = Data_Generator.Data_Generator(batch_dataset_test)
+"""
+data_generator_train = Data_Generator.Data_Generator(
+    batch_dataset_train, 
+    './data/stage_1_train_images/')
+"""
 
+batch_dataset_test = bds.BatchDataset(
+    './stage_1_test_nice.csv', batch_size)
+data_generator_test = Data_Generator.Data_Generator(
+    batch_dataset_test,
+    'stage_1_train_images',
+    './data/rsna-intracranial-hemorrhage-detection.zip')
+
+"""
+data_generator_test = Data_Generator.Data_Generator(
+    batch_dataset_test,
+    './data/stage_1_train_images/')
+"""
 
 
 
@@ -110,3 +128,5 @@ for i in range(60000):
                         use_multiprocessing=False,
                         workers=1,
                         max_queue_size=32)
+
+#%%
