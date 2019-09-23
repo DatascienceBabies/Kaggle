@@ -134,7 +134,7 @@ for layer in model.layers[len(base_model.layers):]:
 #optimizer = Adam(lr=0.00010, decay=0.0000)
 
 #compile model using accuracy to measure model performance
-model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy'])
+model.compile(optimizer='Adam', loss='mean_squared_logarithmic_error', metrics=['accuracy'])
 
 print(model.summary())
 

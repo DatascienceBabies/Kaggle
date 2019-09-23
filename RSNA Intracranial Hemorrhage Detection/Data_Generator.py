@@ -144,11 +144,11 @@ class Data_Generator(Sequence):
                 index = index + 1
 
             X = images_data
-            # TODO: The output(s) should be definable, but for now just create a one hot out of the binary any
-            #Y = self.one_hot_encoder.fit_transform(dataset_chunk.dataset['any'].values.reshape(-1, 1))
+            # TODO: The output(s) should be definable, but for now just create a one hot out of the binary epidural
+            # Y = self.one_hot_encoder.fit_transform(dataset_chunk.dataset['epidural'].values.reshape(-1, 1))
 
             # TODO: Having some problems, testing out a simpler Y
-            Y = dataset_chunk.dataset['any'].values
+            Y = dataset_chunk.dataset['epidural'].values
 
             self.batch_queue.put((X, Y))
 
