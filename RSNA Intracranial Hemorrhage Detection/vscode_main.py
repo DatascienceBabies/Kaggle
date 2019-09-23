@@ -30,6 +30,7 @@ import sys
 import time
 import Data_Generator
 import BatchDataset as bds
+from keras.layers import AveragePooling2D
 
 
 # In[3]: Creates a live plot which is shown while a cell is being run
@@ -57,37 +58,16 @@ def live_image(image):
 
 
 #%% Define dataset
-batch_size = 2
+batch_size = 20
+image_width = 512
+image_height = 512
 
 batch_dataset_train = bds.BatchDataset('./stage_1_train_nice.csv', batch_size)
-data_generator_train = Data_Generator.Data_Generator(
-    batch_dataset_train, 
-    'stage_1_train_images',
-    './data/rsna-intracranial-hemorrhage-detection.zip')
+data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
-"""
-data_generator_train = Data_Generator.Data_Generator(
-    batch_dataset_train, 
-    './data/stage_1_train_images/')
-"""
-
-batch_dataset_test = bds.BatchDataset(
-    './stage_1_test_nice.csv', batch_size)
-data_generator_test = Data_Generator.Data_Generator(
-    batch_dataset_test,
-    'stage_1_train_images',
-    './data/rsna-intracranial-hemorrhage-detection.zip')
-
-"""
-data_generator_test = Data_Generator.Data_Generator(
-    batch_dataset_test,
-    './data/stage_1_train_images/')
-"""
-
-
-
-
-
+batch_dataset_test = bds.BatchDataset('./stage_1_test_nice.csv', batch_size)
+data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
+#data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, './data/stage_1_train_images/')
 
 
 # In[20]: create model
@@ -95,38 +75,40 @@ data_generator_test = Data_Generator.Data_Generator(
 model = Sequential()
 #add model layers
 # TODO: Fix the width and height to be dynamic
-model.add(Conv2D(64, kernel_size=3, activation='relu', input_shape=(512,512,1)))
-model.add(Conv2D(32, kernel_size=3, activation='relu'))
+model.add(Conv2D(32, kernel_size=3, activation='relu', input_shape=(512,512,1)))
+model.add(AveragePooling2D(pool_size=(2, 2)))
+model.add(Conv2D(32, kernel_size=3))
+model.add(AveragePooling2D(pool_size=(2, 2)))
+model.add(Conv2D(32, kernel_size=3))
+model.add(AveragePooling2D(pool_size=(2, 2)))
 model.add(Flatten())
-model.add(Dense(1, activation='softmax'))
+model.add(Dense(128))
+model.add(Dense(128))
+model.add(Dense(128))
+model.add(Dense(1, activation='sigmoid'))
+
+optimizer = Adam(lr=0.00010, decay=0.0000)
 
 #compile model using accuracy to measure model performance
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-# checkpoint
-filepath="weights.best.hdf5"
-checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-best_test_loss = sys.float_info.max
-plotData = collections.defaultdict(list)
-model.save('model')
-
-start = time.time()
+model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
 
 # In[21]:
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    validation_step_size = 5
+    steps_per_epoch_size = 300
+    validation_step_size = 10
 
     model.fit_generator(generator=data_generator_train,
-                        steps_per_epoch=1,
-                        epochs=1,
+                        steps_per_epoch=steps_per_epoch_size,
+                        epochs=100,
                         verbose=1,
                         validation_data=data_generator_test,
                         #validation_steps=batch_dataset_test.batch_amount(),
                         validation_steps=validation_step_size,
                         use_multiprocessing=False,
-                        workers=1,
+                        workers=0,
                         max_queue_size=32)
+
 
 #%%

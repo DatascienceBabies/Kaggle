@@ -10,6 +10,8 @@ class BatchDataset:
     _chunk_size = None
     _df_chunk = None
     _dataset_lines = None
+    _chunks_read = None
+    _total_chunks = None
 
     def _count_lines_in_file(self, filename):
         with open(filename) as f:
@@ -20,6 +22,8 @@ class BatchDataset:
         self._chunk_size = chunk_size
         self._df_chunk = pd.read_csv(file_path, chunksize=chunk_size)
         self._dataset_lines = self._count_lines_in_file(self._csv_file_path) - 1
+        self._chunks_read = 0
+        self._total_chunks = self._dataset_lines / self._chunk_size
 
     # Returns a list of chunk IDs
     #def chunk_ids(self):
@@ -27,8 +31,13 @@ class BatchDataset:
     #    dataset_lines = _count_lines_in_file(self._csv_file_path) - 1
 
     #    return range(math.ceil(dataset_lines / self._chunk_size))
-
     def get_next_chunk(self):
+        # TODO: Add yield you stupid fekk
+        self._chunks_read = self._chunks_read + 1
+        if self._chunks_read > self._total_chunks:
+            self._chunks_read = 0
+            self._df_chunk = pd.read_csv(self._csv_file_path, chunksize=self._chunk_size)
+
         for chunk in self._df_chunk:
             dataset = Dataset.Dataset(True)
             dataset.load_dataset_from_pandas_dataset(chunk)
