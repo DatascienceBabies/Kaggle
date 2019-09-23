@@ -31,6 +31,15 @@ import time
 import Data_Generator
 import BatchDataset as bds
 from keras.layers import AveragePooling2D
+from keras.utils import plot_model
+from keras.models import Model
+from keras.layers import Input
+from keras.layers import Dense
+from keras.layers import Flatten
+from keras.layers.convolutional import Conv2D
+from keras.layers.pooling import MaxPooling2D
+from keras.applications import MobileNet
+from keras.layers import Dense,GlobalAveragePooling2D
 
 
 # In[3]: Creates a live plot which is shown while a cell is being run
@@ -59,13 +68,13 @@ def live_image(image):
 
 #%% Define dataset
 batch_size = 20
-image_width = 512
-image_height = 512
+image_width = 224
+image_height = 224
 
-batch_dataset_train = bds.BatchDataset('./stage_1_train_nice.csv', batch_size)
+batch_dataset_train = bds.BatchDataset('./epidural_train_1000.csv', batch_size)
 data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height)
 
-batch_dataset_test = bds.BatchDataset('./stage_1_test_nice.csv', batch_size)
+batch_dataset_test = bds.BatchDataset('./epidural_test_200.csv', batch_size)
 data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height)
 
 
@@ -77,32 +86,67 @@ data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_wi
 
 # In[20]: create model
 
-model = Sequential()
+#model = Sequential()
 #add model layers
 # TODO: Fix the width and height to be dynamic
-model.add(Conv2D(32, kernel_size=3, activation='relu', input_shape=(512,512,1)))
-model.add(AveragePooling2D(pool_size=(2, 2)))
-model.add(Conv2D(32, kernel_size=3))
-model.add(AveragePooling2D(pool_size=(2, 2)))
-model.add(Conv2D(32, kernel_size=3))
-model.add(AveragePooling2D(pool_size=(2, 2)))
-model.add(Flatten())
-model.add(Dense(128))
-model.add(Dense(128))
-model.add(Dense(128))
-model.add(Dense(1, activation='sigmoid'))
+#model.add(Conv2D(32, kernel_size=3, activation='relu', input_shape=(512,512,1)))
+#model.add(AveragePooling2D(pool_size=(2, 2)))
+#model.add(Conv2D(32, kernel_size=3))
+#model.add(AveragePooling2D(pool_size=(2, 2)))
+#model.add(Conv2D(32, kernel_size=3))
+#model.add(AveragePooling2D(pool_size=(2, 2)))
+#model.add(Flatten())
+#model.add(Dense(128))
+#model.add(Dense(128))
+#model.add(Dense(128))
+#model.add(Dense(1, activation='sigmoid'))
+
+#visible = Input(shape=(512,512,1))
+#conv1 = Conv2D(32, kernel_size=4, activation='relu')(visible)
+#pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+#conv2 = Conv2D(16, kernel_size=4, activation='relu')(pool1)
+#pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+#flat = Flatten()(pool2)
+#hidden1 = Dense(10, activation='relu')(flat)
+#output = Dense(1, activation='sigmoid')(hidden1)
+#model = Model(inputs=visible, outputs=output)
+# summarize layers
+#print(model.summary())
+# plot graph
+#plot_model(model, to_file='convolutional_neural_network.png')
+
+base_model=MobileNet(weights='imagenet',include_top=False) #imports the mobilenet model and discards the last 1000 neuron layer.
+
+x=base_model.output
+x=GlobalAveragePooling2D()(x)
+x=Dense(1024,activation='relu')(x) #we add dense layers so that the model can learn more complex functions and classify for better results.
+x=Dense(1024,activation='relu')(x) #dense layer 2
+x=Dense(512,activation='relu')(x) #dense layer 3
+prediction=Dense(1,activation='softmax')(x) #final layer with softmax activation
+
+model=Model(inputs=base_model.input,outputs=prediction)
+
+#for layer in model.layers:
+#    layer.trainable=False
+# Make the pretrained model layer static (no training)
+for layer in model.layers[:len(base_model.layers)]:
+    layer.trainable=False
+for layer in model.layers[len(base_model.layers):]:
+    layer.trainable=True
 
 optimizer = Adam(lr=0.00010, decay=0.0000)
 
 #compile model using accuracy to measure model performance
 model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
 
+print(model.summary())
+
 # In[21]:
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    steps_per_epoch_size = 300
-    validation_step_size = 10
+    steps_per_epoch_size = batch_dataset_train.batch_amount()
+    validation_step_size = batch_dataset_test.batch_amount()
 
     model.fit_generator(generator=data_generator_train,
                         steps_per_epoch=steps_per_epoch_size,

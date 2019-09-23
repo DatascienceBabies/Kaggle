@@ -14,6 +14,9 @@ import threading
 import queue
 from threading import Thread, Lock
 import time
+import math
+import scipy.misc
+import uuid
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
@@ -23,23 +26,41 @@ class Data_Generator(Sequence):
     image_height = None
     batch_queue = None
     batch_dataset_mutex = None
-    queue_workers = 5
+    queue_workers = 2
     queue_size = 30
 
     def _open_dcm_image(self, picture_folder, ID):
         picture_path = os.path.join(picture_folder, ID[0:12] + ".dcm")
         dcm_image = dicom.dcmread(picture_path)
         
-        # Access pixel data in more intelligent way for uncompressed images (recommended)
-        image = dcm_image.pixel_array  # returns a NumPy array for uncompressed images
+        try:
+            # Access pixel data in more intelligent way for uncompressed images (recommended)
+            image = dcm_image.pixel_array  # returns a NumPy array for uncompressed images
+        except:
+            print('Exception when fetching pixel array of file ', picture_path)
+            # Temporary fix to allow continued training
+            image = np.zeros((self.image_width, self.image_height))
 
         # Convert to int16 (from sometimes int16), 
         # should be possible as values should always be low enough (<32k)
         image = image.astype(np.int16)
 
-        # Set outside-of-scan pixels to 1
-        # The intercept is usually -1024, so air is approximately 0
-        image[image == -2000] = 0
+        # Move to positive pixel values (not needed as long as we do not convert to Hounsfield units?)
+        if image.min() < 0:
+            image = image - image.min()        
+
+        # Convert to 0-255 according to https://www.leadtools.com/sdk/medical/dicom-spec17#targetText=The%20minimum%20actual%20Pixel%20Sample,Value%20(0028%2C0107).
+        max_dcm_pixel_value = math.pow(2, dcm_image.BitsStored)
+        image = image / max_dcm_pixel_value * 255
+
+        # Sanity check
+        if image.max() > 255:
+            raise AttributeError("Image max out of range")
+
+        # Create three pixel channels
+        image = np.stack((image,)*3, axis=-1)
+
+        # Check for sanity stuff
         
         # TODO: Read up on this
         # Convert to Hounsfield units (HU)
@@ -52,17 +73,13 @@ class Data_Generator(Sequence):
             
         # image += np.int16(intercept)
 
-        # Move to positive pixel values (not needed as long as we do not convert to Hounsfield units?)
-        if image.min() < 0:
-            image = image - image.min()
-
         if np.isnan(image).any():
-            print('We are fucked!')
+            raise AttributeError("Image contains NaN")
 
-        # Normalize to 0-1 range
-        image = image / image.max()
+        #cv2.imwrite('c:/temp/' + str(uuid.uuid4()) + '.jpg', image)
         
-        return np.expand_dims(np.array(image, dtype=np.int16), 2)
+        # return np.expand_dims(np.array(image, dtype=np.int16), 2)
+        return image
 
     def _worker_queue_data(self):
         while 1:
@@ -79,7 +96,7 @@ class Data_Generator(Sequence):
                 # TODO: Send in width and height as constructor parameters
                 image_data = self._open_dcm_image('./data/stage_1_train_images/', row[1]['ID'])
                 if images_data == []:
-                    images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_width, self.image_height, 1))
+                    images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_width, self.image_height, 3))
 
                 if image_data.shape[0] != self.image_width or image_data.shape[1] != self.image_height:
                     image_data = cv2.resize(image_data, dsize=(self.image_width, self.image_height), interpolation=cv2.INTER_CUBIC).reshape(self.image_width, self.image_height, image_data.shape[2])
@@ -115,7 +132,11 @@ class Data_Generator(Sequence):
         return self.batch_dataset.batch_amount()
 
     def __getitem__(self, idx):
-        item = self.batch_queue.get(block=True)
+        try:
+            item = self.batch_queue.get_nowait()
+        except:
+            print("Unable to immediately fetch new databatch")
+            item = self.batch_queue.get(block=True)
         X = item[0]
         Y = item[1]
         return X, Y
