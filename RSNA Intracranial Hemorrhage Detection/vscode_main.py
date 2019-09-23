@@ -68,20 +68,17 @@ def live_image(image):
 
 #%% Define dataset
 batch_size = 20
-image_width = 224
-image_height = 224
+image_width = 512
+image_height = 512
 
 batch_dataset_train = bds.BatchDataset('./epidural_train_1000.csv', batch_size)
-data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height)
+data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, './data/stage_1_train_images')
+#data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
 batch_dataset_test = bds.BatchDataset('./epidural_test_200.csv', batch_size)
-data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height)
-
-
-
-
-
-
+data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, './data/stage_1_train_images')
+#data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
+#data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, './data/stage_1_train_images/')
 
 
 # In[20]: create model
@@ -134,10 +131,10 @@ for layer in model.layers[:len(base_model.layers)]:
 for layer in model.layers[len(base_model.layers):]:
     layer.trainable=True
 
-optimizer = Adam(lr=0.00010, decay=0.0000)
+#optimizer = Adam(lr=0.00010, decay=0.0000)
 
 #compile model using accuracy to measure model performance
-model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
+model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 print(model.summary())
 
@@ -158,3 +155,6 @@ for i in range(60000):
                         use_multiprocessing=False,
                         workers=0,
                         max_queue_size=32)
+
+
+#%%

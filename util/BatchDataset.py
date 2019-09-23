@@ -34,7 +34,7 @@ class BatchDataset:
     def get_next_chunk(self):
         # TODO: Add yield you stupid fekk
         self._chunks_read = self._chunks_read + 1
-        if self._chunks_read > self._total_chunks:
+        if self._chunks_read == self._total_chunks:
             self._chunks_read = 0
             self._df_chunk = pd.read_csv(self._csv_file_path, chunksize=self._chunk_size)
 
