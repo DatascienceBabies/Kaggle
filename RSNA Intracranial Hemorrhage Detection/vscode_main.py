@@ -75,15 +75,26 @@ def live_image(image):
 
 #%% Define dataset
 batch_size = 20
-image_width = 128
-image_height = 128
+image_width = 256
+image_height = 256
 
 batch_dataset_train = bds.BatchDataset('./epidural_train_1000.csv', batch_size)
-data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, './data/stage_1_train_images', output_test_images=False)
+data_generator_train = Data_Generator.Data_Generator(
+    batch_dataset_train,
+    image_width,
+    image_height,
+    './data/stage_1_train_images',
+    include_resized_mini_images=True,
+    output_test_images=False)
 #data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
 batch_dataset_test = bds.BatchDataset('./epidural_test_200.csv', batch_size)
-data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, './data/stage_1_train_images')
+data_generator_test = Data_Generator.Data_Generator(
+    batch_dataset_test,
+    image_width,
+    image_height,
+    './data/stage_1_train_images',
+    include_resized_mini_images=True)
 #data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 #data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, './data/stage_1_train_images/')
 
@@ -142,7 +153,7 @@ data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_wi
 
 model = Sequential()
 
-model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_1', input_shape = (image_width, image_height, 3)))
+model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_1', input_shape = (data_generator_train.image_height, data_generator_train.image_width, 3)))
 #first_layer = model.layers[0]
 # this is a placeholder tensor that will contain our generated images
 #input_img = first_layer.input

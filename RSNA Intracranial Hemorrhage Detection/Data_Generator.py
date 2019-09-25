@@ -38,6 +38,9 @@ class Data_Generator(Sequence):
     queue_size = 30
     output_test_images = None
     last_test_image_created = None
+    include_resized_mini_images = None
+    original_width = None
+    original_height = None
 
     def open_dcm_image(self, ID):
         try:
@@ -103,7 +106,7 @@ class Data_Generator(Sequence):
         # return np.expand_dims(np.array(image, dtype=np.int16), 2)
         return image
 
-    def __init__(self, batch_dataset, image_width, image_height, base_image_path="", zip_path=None, output_test_images=False):
+    def __init__(self, batch_dataset, image_width, image_height, base_image_path="", zip_path=None, output_test_images=False, include_resized_mini_images=False):
         self.batch_dataset = batch_dataset
         self.image_width = image_width
         self.image_height = image_height
@@ -113,6 +116,12 @@ class Data_Generator(Sequence):
         self.base_image_path = base_image_path
         self.output_test_images = output_test_images
         self.last_test_image_created = time.time()
+        self.include_resized_mini_images = include_resized_mini_images
+        self.original_width = image_width
+        self.original_height = image_height
+
+        if (self.include_resized_mini_images):
+            self.image_width = math.ceil(self.image_width * 1.5)
         
         if zip_path != None:
             self.archive = zipfile.ZipFile(zip_path, 'r')
@@ -135,29 +144,24 @@ class Data_Generator(Sequence):
         return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_CUBIC).reshape(width, height, image.shape[2])
 
     def _add_smaller_images(self, image):
-        new_image = cv2.copyMakeBorder(image, 0, 0, 0, int(self.image_width / 2), cv2.BORDER_CONSTANT)
+        new_width = math.floor(image.shape[1] / 2)
+        new_height = math.floor(image.shape[0] / 2)
+        x_offset=image.shape[1]
+        image = cv2.copyMakeBorder(image, 0, 0, 0, new_width, cv2.BORDER_CONSTANT)
+        resized_images = []
+
+        for i in range(4):
+            resized_images.append(self._resize_image(image, new_width, new_height))
+            new_width = math.floor(new_width / 2)
+            new_height = math.floor(new_height / 2)
         
-        x_offset=image.shape[0]
         y_offset=0
-        resized_image = self._resize_image(image, int(image.shape[0] / 2), int(image.shape[1] / 2))
-        new_image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
+        for i in range(4):
+            resized_image = resized_images[i]
+            image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
+            y_offset = y_offset + resized_image.shape[0]
 
-        x_offset = x_offset + resized_image.shape[0]
-        y_offset=0
-        resized_image = self._resize_image(image, int(image.shape[0] / 2), int(image.shape[1] / 2))
-        new_image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
-
-        #x_offset = x_offset + resized_image.shape[0]
-        #y_offset=0
-        #resized_image = self._resize_image(image, int(image.shape[0] / 2), int(image.shape[1] / 2))
-        #new_image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
-
-        #x_offset = x_offset + resized_image.shape[0]
-        #y_offset=0
-        #resized_image = self._resize_image(image, int(image.shape[0] / 2), int(image.shape[1] / 2))
-        #new_image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
-        # 
-        return new_image                   
+        return image                   
 
 
     def _worker_queue_data(self):
@@ -169,7 +173,7 @@ class Data_Generator(Sequence):
 
             # Add batch of image data as Y
             # Open first image to get width x height. Assume all other images to be same resolution
-            images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_width, self.image_height, 3))
+            images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 3))
             index = 0
             for row in dataset_chunk.dataset.iterrows():
                 # TODO: Send in width and height as constructor parameters
@@ -178,23 +182,18 @@ class Data_Generator(Sequence):
                 else:
                     image_data = self.open_dcm_image(row[1]['ID'])
 
-                if image_data.shape[0] != self.image_width or image_data.shape[1] != self.image_height:
-                    image_data = self._resize_image(image_data, self.image_width, self.image_height)
+                if image_data.shape[1] != self.original_width or image_data.shape[0] != self.original_height:
+                    image_data = self._resize_image(image_data, self.original_width, self.original_height)
 
-                # image_data = self._add_smaller_images(image_data)
+                if self.include_resized_mini_images:
+                    image_data = self._add_smaller_images(image_data)
 
                 images_data[index, :, :, :] = image_data
                 index = index + 1
 
             X = images_data
             # TODO: The output(s) should be definable, but for now just create a one hot out of the binary epidural
-            # Y = self.one_hot_encoder.fit_transform(dataset_chunk.dataset['epidural'].values.reshape(-1, 1))
-            # Y = (dataset_chunk.dataset['epidural'].values == 1).astype('float32')
-            # Y = Y.reshape(-1, 1)
             Y = np.eye(2)[dataset_chunk.dataset['epidural'].values]
-
-            # TODO: Having some problems, testing out a simpler Y
-            # Y = dataset_chunk.dataset['epidural'].values
 
             #self.batch_queue.put((X, np.asarray(Y)))
             self.batch_queue.put((X, Y))
