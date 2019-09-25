@@ -53,7 +53,7 @@ def live_plot(data_dict, figsize=(15,5), title='', logarithmic = False):
     plt.figure(figsize=figsize)
     for label,data in data_dict.items():
         if logarithmic:
-            data = np.log10(data)
+            plt.yscale("log")
         plt.plot(data, label=label)
     plt.title(title)
     plt.grid(True)
@@ -75,8 +75,8 @@ def live_image(image):
 
 #%% Define dataset
 batch_size = 20
-image_width = 256
-image_height = 256
+image_width = 128
+image_height = 128
 
 batch_dataset_train = bds.BatchDataset('./epidural_train_1000.csv', batch_size)
 data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, './data/stage_1_train_images', output_test_images=False)
