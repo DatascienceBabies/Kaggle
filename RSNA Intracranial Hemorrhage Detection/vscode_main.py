@@ -40,6 +40,8 @@ from keras.layers.convolutional import Conv2D
 from keras.layers.pooling import MaxPooling2D
 from keras.applications import MobileNet
 from keras.layers import Dense,GlobalAveragePooling2D
+from keras.layers import Convolution2D
+from keras import optimizers
 
 
 # In[3]: Creates a live plot which is shown while a cell is being run
@@ -68,11 +70,11 @@ def live_image(image):
 
 #%% Define dataset
 batch_size = 20
-image_width = 512
-image_height = 512
+image_width = 256
+image_height = 256
 
 batch_dataset_train = bds.BatchDataset('./epidural_train_1000.csv', batch_size)
-data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, './data/stage_1_train_images')
+data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, './data/stage_1_train_images', output_test_images=True)
 #data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
 batch_dataset_test = bds.BatchDataset('./epidural_test_200.csv', batch_size)
@@ -98,43 +100,84 @@ data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_wi
 #model.add(Dense(128))
 #model.add(Dense(1, activation='sigmoid'))
 
-#visible = Input(shape=(512,512,1))
+#visible = Input(shape=(512,512,3))
 #conv1 = Conv2D(32, kernel_size=4, activation='relu')(visible)
 #pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 #conv2 = Conv2D(16, kernel_size=4, activation='relu')(pool1)
 #pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 #flat = Flatten()(pool2)
 #hidden1 = Dense(10, activation='relu')(flat)
-#output = Dense(1, activation='sigmoid')(hidden1)
+#output = Dense(2, activation='sigmoid')(hidden1)
 #model = Model(inputs=visible, outputs=output)
-# summarize layers
-#print(model.summary())
 # plot graph
 #plot_model(model, to_file='convolutional_neural_network.png')
 
-base_model=MobileNet(weights='imagenet',include_top=False) #imports the mobilenet model and discards the last 1000 neuron layer.
+#base_model=MobileNet(weights='imagenet',include_top=False) #imports the mobilenet model and discards the last 1000 neuron layer.
+#x=base_model.output
+#x=GlobalAveragePooling2D()(x)
+#x=Dense(1024,activation='relu')(x) #we add dense layers so that the model can learn more complex functions and classify for better results.
+#x=Dense(1024,activation='relu')(x) #dense layer 2
+#x=Dense(512,activation='relu')(x) #dense layer 3
+#prediction=Dense(2,activation='softmax')(x) #final layer with softmax activation
 
-x=base_model.output
-x=GlobalAveragePooling2D()(x)
-x=Dense(1024,activation='relu')(x) #we add dense layers so that the model can learn more complex functions and classify for better results.
-x=Dense(1024,activation='relu')(x) #dense layer 2
-x=Dense(512,activation='relu')(x) #dense layer 3
-prediction=Dense(1,activation='softmax')(x) #final layer with softmax activation
-
-model=Model(inputs=base_model.input,outputs=prediction)
+#model=Model(inputs=base_model.input,outputs=prediction)
 
 #for layer in model.layers:
 #    layer.trainable=False
 # Make the pretrained model layer static (no training)
-for layer in model.layers[:len(base_model.layers)]:
-    layer.trainable=False
-for layer in model.layers[len(base_model.layers):]:
-    layer.trainable=True
+#for layer in model.layers[:len(base_model.layers)]:
+#    layer.trainable=False
+#for layer in model.layers[len(base_model.layers):]:
+#    layer.trainable=True
 
-#optimizer = Adam(lr=0.00010, decay=0.0000)
+#optimizer = Adam(lr=0.10000, decay=0.0000)
 
 #compile model using accuracy to measure model performance
-model.compile(optimizer='Adam', loss='mean_squared_logarithmic_error', metrics=['accuracy'])
+#model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
+
+model = Sequential()
+
+model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_1', input_shape = (image_width, image_height, 3)))
+#first_layer = model.layers[0]
+# this is a placeholder tensor that will contain our generated images
+#input_img = first_layer.input
+#dream = input_img
+model.add(Activation("relu"))
+model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_2'))
+model.add(Activation("relu"))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+#2
+model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_1'))
+model.add(Activation("relu"))
+model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_2'))
+model.add(Activation("relu"))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+#2
+model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_1_1'))
+model.add(Activation("relu"))
+model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_2_2'))
+model.add(Activation("relu"))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+#flatten
+model.add(Flatten())
+#model.add(Dense(512))
+#model.add(Activation("relu"))
+model.add(Dropout(0.5))
+
+model.add(Dense(2))
+model.add(Activation('softmax'))
+
+rms = optimizers.RMSprop()
+sgd = optimizers.SGD(lr=0.000010, decay=1e-6, momentum=0.5, nesterov=True)
+model.compile(loss='categorical_crossentropy', optimizer=sgd,metrics=["accuracy"])
+#model.fit(Xtrain, Ytrain, batch_size=32, nb_epoch=100,
+#          verbose=1)
 
 print(model.summary())
 

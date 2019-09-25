@@ -19,6 +19,9 @@ import time
 import math
 import scipy.misc
 import uuid
+import skimage as sk
+import time
+import random
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
@@ -33,6 +36,8 @@ class Data_Generator(Sequence):
     batch_dataset_mutex = None
     queue_workers = 6
     queue_size = 30
+    output_test_images = None
+    last_test_image_created = None
 
     def open_dcm_image(self, ID):
         try:
@@ -68,8 +73,9 @@ class Data_Generator(Sequence):
             image = image - image.min()        
 
         # Convert to 0-255 according to https://www.leadtools.com/sdk/medical/dicom-spec17#targetText=The%20minimum%20actual%20Pixel%20Sample,Value%20(0028%2C0107).
-        max_dcm_pixel_value = math.pow(2, dcm_image.BitsStored)
-        image = image / max_dcm_pixel_value * 255
+        # max_dcm_pixel_value = math.pow(2, dcm_image.BitsStored)
+        # image = image / max_dcm_pixel_value * 255
+        image = image / image.max() * 255
 
         # Sanity check
         if image.max() > 255:
@@ -93,13 +99,11 @@ class Data_Generator(Sequence):
 
         if np.isnan(image).any():
             raise AttributeError("Image contains NaN")
-
-        #cv2.imwrite('c:/temp/' + str(uuid.uuid4()) + '.jpg', image)
         
         # return np.expand_dims(np.array(image, dtype=np.int16), 2)
         return image
 
-    def __init__(self, batch_dataset, image_width, image_height, base_image_path="", zip_path=None):
+    def __init__(self, batch_dataset, image_width, image_height, base_image_path="", zip_path=None, output_test_images=False):
         self.batch_dataset = batch_dataset
         self.image_width = image_width
         self.image_height = image_height
@@ -107,6 +111,8 @@ class Data_Generator(Sequence):
         self.batch_dataset_mutex = Lock()
         self.archive_mutex = Lock()
         self.base_image_path = base_image_path
+        self.output_test_images = output_test_images
+        self.last_test_image_created = time.time()
         
         if zip_path != None:
             self.archive = zipfile.ZipFile(zip_path, 'r')
@@ -118,6 +124,41 @@ class Data_Generator(Sequence):
         for _ in range(self.queue_workers):
             worker = threading.Thread(target=self._worker_queue_data, args=())
             worker.start()
+
+    has_shown_debug_message = False
+
+
+
+    def _resize_image(self, image, width, height):
+        width = int(width)
+        height = int(height)
+        return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_CUBIC).reshape(width, height, image.shape[2])
+
+    def _add_smaller_images(self, image):
+        new_image = cv2.copyMakeBorder(image, 0, 0, 0, int(self.image_width / 2), cv2.BORDER_CONSTANT)
+        
+        x_offset=image.shape[0]
+        y_offset=0
+        resized_image = self._resize_image(image, int(image.shape[0] / 2), int(image.shape[1] / 2))
+        new_image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
+
+        x_offset = x_offset + resized_image.shape[0]
+        y_offset=0
+        resized_image = self._resize_image(image, int(image.shape[0] / 2), int(image.shape[1] / 2))
+        new_image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
+
+        #x_offset = x_offset + resized_image.shape[0]
+        #y_offset=0
+        #resized_image = self._resize_image(image, int(image.shape[0] / 2), int(image.shape[1] / 2))
+        #new_image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
+
+        #x_offset = x_offset + resized_image.shape[0]
+        #y_offset=0
+        #resized_image = self._resize_image(image, int(image.shape[0] / 2), int(image.shape[1] / 2))
+        #new_image[y_offset:y_offset+resized_image.shape[0], x_offset:x_offset+resized_image.shape[1]] = resized_image
+        # 
+        return new_image                   
+
 
     def _worker_queue_data(self):
         while 1:
@@ -138,7 +179,9 @@ class Data_Generator(Sequence):
                     image_data = self.open_dcm_image(row[1]['ID'])
 
                 if image_data.shape[0] != self.image_width or image_data.shape[1] != self.image_height:
-                    image_data = cv2.resize(image_data, dsize=(self.image_width, self.image_height), interpolation=cv2.INTER_CUBIC).reshape(self.image_width, self.image_height, image_data.shape[2])
+                    image_data = self._resize_image(image_data, self.image_width, self.image_height)
+
+                # image_data = self._add_smaller_images(image_data)
 
                 images_data[index, :, :, :] = image_data
                 index = index + 1
@@ -146,11 +189,22 @@ class Data_Generator(Sequence):
             X = images_data
             # TODO: The output(s) should be definable, but for now just create a one hot out of the binary epidural
             # Y = self.one_hot_encoder.fit_transform(dataset_chunk.dataset['epidural'].values.reshape(-1, 1))
+            # Y = (dataset_chunk.dataset['epidural'].values == 1).astype('float32')
+            # Y = Y.reshape(-1, 1)
+            Y = np.eye(2)[dataset_chunk.dataset['epidural'].values]
 
             # TODO: Having some problems, testing out a simpler Y
-            Y = dataset_chunk.dataset['epidural'].values
+            # Y = dataset_chunk.dataset['epidural'].values
 
+            #self.batch_queue.put((X, np.asarray(Y)))
             self.batch_queue.put((X, Y))
+
+    def _store_debug_picture(self, X, Y):
+        if time.time() - self.last_test_image_created > 10:
+            # Save one random picture
+            self.last_test_image_created = time.time()
+            index = random.randint(0, X.shape[0]-1)
+            cv2.imwrite('c:/temp/' + str(uuid.uuid4()) + ' - ' + str(Y[index]) + '.jpg', X[index])
 
     def __len__(self):
         return self.batch_dataset.batch_amount()
@@ -163,4 +217,8 @@ class Data_Generator(Sequence):
             item = self.batch_queue.get(block=True)
         X = item[0]
         Y = item[1]
-        return X, Y
+
+        if self.output_test_images:
+            self._store_debug_picture(X, Y)
+
+        return X.astype(int), Y.astype(int)
