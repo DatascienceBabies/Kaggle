@@ -48,10 +48,12 @@ from matplotlib import pyplot as plt
 
 
 # In[3]: Creates a live plot which is shown while a cell is being run
-def live_plot(data_dict, figsize=(15,5), title=''):
+def live_plot(data_dict, figsize=(15,5), title='', logarithmic = False):
     clear_output(wait=True)
     plt.figure(figsize=figsize)
     for label,data in data_dict.items():
+        if logarithmic:
+            data = np.log10(data)
         plt.plot(data, label=label)
     plt.title(title)
     plt.grid(True)
@@ -219,12 +221,12 @@ for i in range(60000):
         best_val_loss = validation_loss
         model.save_weights('best_model_weights')
         print("New best test loss!")
-        live_plot(plotData)
+        live_plot(plotData, logarithmic=True)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
-        live_plot(plotData)
+        live_plot(plotData, logarithmic=True)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 
