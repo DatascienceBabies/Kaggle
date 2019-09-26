@@ -85,7 +85,9 @@ data_generator_train = Data_Generator.Data_Generator(
     image_height,
     './data/stage_1_train_images',
     include_resized_mini_images=True,
-    output_test_images=False)
+    output_test_images=False,
+    cache_data=True,
+    cache_location='g:/temp/cache_train.dat')
 #data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
 batch_dataset_test = bds.BatchDataset('./epidural_test_500.csv', batch_size)
@@ -94,7 +96,9 @@ data_generator_test = Data_Generator.Data_Generator(
     image_width,
     image_height,
     './data/stage_1_train_images',
-    include_resized_mini_images=True)
+    include_resized_mini_images=True,
+    cache_data=True,
+    cache_location='g:/temp/cache_test.dat')
 #data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 #data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, './data/stage_1_train_images/')
 
@@ -205,8 +209,8 @@ plotData = collections.defaultdict(list)
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    steps_per_epoch_size = batch_dataset_train.batch_amount()
-    validation_step_size = batch_dataset_test.batch_amount()
+    steps_per_epoch_size = batch_dataset_train.batch_amount() / 3
+    validation_step_size = batch_dataset_test.batch_amount() / 3
 
     history = model.fit_generator(generator=data_generator_train,
                         steps_per_epoch=steps_per_epoch_size,

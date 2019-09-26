@@ -22,6 +22,7 @@ import uuid
 import skimage as sk
 import time
 import random
+from Data_Generator_Cache import Data_Generator_Cache
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
@@ -34,13 +35,15 @@ class Data_Generator(Sequence):
     image_height = None
     batch_queue = None
     batch_dataset_mutex = None
-    queue_workers = 6
+    queue_workers = 1
     queue_size = 30
     output_test_images = None
     last_test_image_created = None
     include_resized_mini_images = None
     original_width = None
     original_height = None
+    cache_data = None
+    data_generator_cache = None
 
     def open_dcm_image(self, ID):
         try:
@@ -106,7 +109,18 @@ class Data_Generator(Sequence):
         # return np.expand_dims(np.array(image, dtype=np.int16), 2)
         return image
 
-    def __init__(self, batch_dataset, image_width, image_height, base_image_path="", zip_path=None, output_test_images=False, include_resized_mini_images=False):
+    def __init__(
+        self,
+        batch_dataset,
+        image_width,
+        image_height,
+        base_image_path="",
+        zip_path=None,
+        output_test_images=False,
+        include_resized_mini_images=False,
+        cache_data=False,
+        cache_location=None):
+        
         self.batch_dataset = batch_dataset
         self.image_width = image_width
         self.image_height = image_height
@@ -119,6 +133,7 @@ class Data_Generator(Sequence):
         self.include_resized_mini_images = include_resized_mini_images
         self.original_width = image_width
         self.original_height = image_height
+        self.cache_data = cache_data
 
         if (self.include_resized_mini_images):
             self.image_width = math.ceil(self.image_width * 1.5)
@@ -130,13 +145,17 @@ class Data_Generator(Sequence):
         # We need categories defined, as we cannot trust the auto-category with batch data
         self.one_hot_encoder = OneHotEncoder(categories=[[0, 1]], handle_unknown='ignore')
 
+        if self.cache_data:
+            self.data_generator_cache = Data_Generator_Cache(
+                cache_location,
+                self.image_width,
+                self.image_height,
+                key_length=12
+            )        
+
         for _ in range(self.queue_workers):
             worker = threading.Thread(target=self._worker_queue_data, args=())
             worker.start()
-
-    has_shown_debug_message = False
-
-
 
     def _resize_image(self, image, width, height):
         width = int(width)
@@ -176,6 +195,10 @@ class Data_Generator(Sequence):
             images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 3))
             index = 0
             for row in dataset_chunk.dataset.iterrows():
+                if self.cache_data and self.data_generator_cache.key_exists(row[1]['ID']):
+                    images_data[index, :, :, :] = self.data_generator_cache.get_image(row[1]['ID'])
+                    continue
+
                 # TODO: Send in width and height as constructor parameters
                 if self.archive != None:
                     image_data = self.open_dcm_image_from_zip(row[1]['ID'])
@@ -189,6 +212,8 @@ class Data_Generator(Sequence):
                     image_data = self._add_smaller_images(image_data)
 
                 images_data[index, :, :, :] = image_data
+                if self.cache_data:
+                    self.data_generator_cache.add_to_cache(image_data, row[1]['ID'])
                 index = index + 1
 
             X = images_data
