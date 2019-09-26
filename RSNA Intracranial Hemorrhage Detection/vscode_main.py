@@ -74,11 +74,11 @@ def live_image(image):
 
 
 #%% Define dataset
-batch_size = 20
-image_width = 256
-image_height = 256
+batch_size = 100
+image_width = 128
+image_height = 128
 
-batch_dataset_train = bds.BatchDataset('./epidural_train_1000.csv', batch_size)
+batch_dataset_train = bds.BatchDataset('./epidural_train_2200.csv', batch_size)
 data_generator_train = Data_Generator.Data_Generator(
     batch_dataset_train,
     image_width,
@@ -88,7 +88,7 @@ data_generator_train = Data_Generator.Data_Generator(
     output_test_images=False)
 #data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
-batch_dataset_test = bds.BatchDataset('./epidural_test_200.csv', batch_size)
+batch_dataset_test = bds.BatchDataset('./epidural_test_500.csv', batch_size)
 data_generator_test = Data_Generator.Data_Generator(
     batch_dataset_test,
     image_width,
@@ -195,6 +195,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_o
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
 model.save('model')
+model.load_weights('best_model_weights')
 
 start = time.time()
 

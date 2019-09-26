@@ -141,13 +141,12 @@ class Data_Generator(Sequence):
     def _resize_image(self, image, width, height):
         width = int(width)
         height = int(height)
-        return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_CUBIC).reshape(width, height, image.shape[2])
+        return cv2.resize(image, dsize=(height, width), interpolation=cv2.INTER_CUBIC).reshape(height, width, image.shape[2])
 
     def _add_smaller_images(self, image):
         new_width = math.floor(image.shape[1] / 2)
         new_height = math.floor(image.shape[0] / 2)
         x_offset=image.shape[1]
-        image = cv2.copyMakeBorder(image, 0, 0, 0, new_width, cv2.BORDER_CONSTANT)
         resized_images = []
 
         for i in range(4):
@@ -155,6 +154,7 @@ class Data_Generator(Sequence):
             new_width = math.floor(new_width / 2)
             new_height = math.floor(new_height / 2)
         
+        image = cv2.copyMakeBorder(image, 0, 0, 0, math.floor(image.shape[1] / 2), cv2.BORDER_CONSTANT)
         y_offset=0
         for i in range(4):
             resized_image = resized_images[i]
