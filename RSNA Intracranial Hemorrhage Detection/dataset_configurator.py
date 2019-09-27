@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 
-train_samples = 2200
-test_samples = 500
+train_samples = 3000
+test_samples = 100
 
 ds = pd.read_csv('stage_1_train_nice.csv')
 epidurals_ds = ds[ds['epidural'] == 1].sample(train_samples)

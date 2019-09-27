@@ -78,19 +78,19 @@ batch_size = 100
 image_width = 128
 image_height = 128
 
-batch_dataset_train = bds.BatchDataset('./epidural_train_2200.csv', batch_size)
+batch_dataset_train = bds.BatchDataset('./epidural_train_2500.csv', batch_size)
 data_generator_train = Data_Generator.Data_Generator(
     batch_dataset_train,
     image_width,
     image_height,
     './data/stage_1_train_images',
     include_resized_mini_images=True,
-    output_test_images=False,
+    output_test_images=True,
     cache_data=True,
     cache_location='g:/temp/cache_train.dat')
 #data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
-batch_dataset_test = bds.BatchDataset('./epidural_test_500.csv', batch_size)
+batch_dataset_test = bds.BatchDataset('./epidural_test_100.csv', batch_size)
 data_generator_test = Data_Generator.Data_Generator(
     batch_dataset_test,
     image_width,
@@ -166,28 +166,36 @@ model.add(Activation("relu"))
 model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_2'))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
+#model.add(Dropout(0.25))
 
 #2
 model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_1_1'))
 model.add(Activation("relu"))
+model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_2_2'))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
+#model.add(Dropout(0.25))
 
 #flatten
 model.add(Flatten())
-#model.add(Dense(512))
-#model.add(Activation("relu"))
-model.add(Dropout(0.5))
+model.add(Activation("relu"))
+model.add(Dense(100))
+model.add(Activation("relu"))
+model.add(Dense(300))
+model.add(Activation("relu"))
+model.add(Dense(100))
+model.add(Activation("relu"))
+model.add(Dense(50))
+model.add(Activation("relu"))
 
 model.add(Dense(2))
 model.add(Activation('softmax'))
 
-rms = optimizers.RMSprop()
-sgd = optimizers.SGD(lr=0.000010, decay=1e-6, momentum=0.5, nesterov=True)
-model.compile(loss='categorical_crossentropy', optimizer=sgd,metrics=['accuracy'])
+#rms = optimizers.RMSprop()
+#sgd = optimizers.SGD(lr=0.000010, decay=1e-6, momentum=0.5, nesterov=True)
+optimizer = Adam(lr=0.00001, decay=0.000001)
+model.compile(loss='mean_squared_error', optimizer=optimizer,metrics=['accuracy'])
 #model.fit(Xtrain, Ytrain, batch_size=32, nb_epoch=100,
 #          verbose=1)
 
@@ -199,7 +207,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_o
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
 model.save('model')
-model.load_weights('best_model_weights')
+#model.load_weights('best_model_weights')
 
 start = time.time()
 
@@ -209,8 +217,8 @@ plotData = collections.defaultdict(list)
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    steps_per_epoch_size = batch_dataset_train.batch_amount() / 3
-    validation_step_size = batch_dataset_test.batch_amount() / 3
+    steps_per_epoch_size = batch_dataset_train.batch_amount() / 5
+    validation_step_size = batch_dataset_test.batch_amount()
 
     history = model.fit_generator(generator=data_generator_train,
                         steps_per_epoch=steps_per_epoch_size,
