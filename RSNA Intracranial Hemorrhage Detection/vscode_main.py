@@ -71,15 +71,43 @@ def live_image(image):
 
 
 
+#%%
+def create_specialized_csv(target_type, train_samples, test_samples):
+    train_csv_file = target_type + '_train_' + str(train_samples) + '.csv'
+    ds = pd.read_csv('stage_1_train_nice.csv')
+    dataset = ds[ds[target_type] == 1].sample(train_samples)
+    ds = ds.drop(dataset.index)
+    none_ds = ds[ds['any'] == 0].sample(train_samples)
+    ds = ds.drop(none_ds.index)
+    epidural_train_ds = pd.concat([dataset, none_ds]).sample(frac=1)
+    epidural_train_ds.to_csv(train_csv_file, index=None, header=True)
+
+    test_csv_file = target_type + '_test_' + str(test_samples) + '.csv'
+    dataset = ds[ds[target_type] == 1].sample(test_samples)
+    ds = ds.drop(dataset.index)
+    none_ds = ds[ds['any'] == 0].sample(test_samples)
+    ds = ds.drop(none_ds.index)
+    epidural_test_ds = pd.concat([dataset, none_ds]).sample(frac=1)
+    epidural_test_ds.to_csv(test_csv_file, index=None, header=True)
+
+    return train_csv_file, test_csv_file
+
+
 
 
 #%% Define dataset
 batch_size = 100
 image_width = 128
 image_height = 128
+train_samples = 20000
+test_samples = 400
+target_type = 'any'
 
-batch_dataset_train = bds.BatchDataset('./epidural_train_2500.csv', batch_size)
+train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples)
+
+batch_dataset_train = bds.BatchDataset('./' + train_csv_file, batch_size)
 data_generator_train = Data_Generator.Data_Generator(
+    target_type,
     batch_dataset_train,
     image_width,
     image_height,
@@ -90,8 +118,9 @@ data_generator_train = Data_Generator.Data_Generator(
     cache_location='g:/temp/cache_train.dat')
 #data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
-batch_dataset_test = bds.BatchDataset('./epidural_test_100.csv', batch_size)
+batch_dataset_test = bds.BatchDataset('./' + test_csv_file, batch_size)
 data_generator_test = Data_Generator.Data_Generator(
+    target_type,
     batch_dataset_test,
     image_width,
     image_height,
@@ -217,8 +246,8 @@ plotData = collections.defaultdict(list)
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    steps_per_epoch_size = batch_dataset_train.batch_amount() / 5
-    validation_step_size = batch_dataset_test.batch_amount()
+    steps_per_epoch_size = batch_dataset_train.batch_amount() / 30
+    validation_step_size = batch_dataset_test.batch_amount() / 5
 
     history = model.fit_generator(generator=data_generator_train,
                         steps_per_epoch=steps_per_epoch_size,

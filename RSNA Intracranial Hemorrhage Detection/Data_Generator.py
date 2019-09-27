@@ -44,6 +44,7 @@ class Data_Generator(Sequence):
     original_height = None
     cache_data = None
     data_generator_cache = None
+    target_type = None
 
     def open_dcm_image(self, ID):
         try:
@@ -111,6 +112,7 @@ class Data_Generator(Sequence):
 
     def __init__(
         self,
+        target_type,
         batch_dataset,
         image_width,
         image_height,
@@ -134,6 +136,7 @@ class Data_Generator(Sequence):
         self.original_width = image_width
         self.original_height = image_height
         self.cache_data = cache_data
+        self.target_type = target_type
 
         if (self.include_resized_mini_images):
             self.image_width = math.ceil(self.image_width * 1.5)
@@ -218,8 +221,7 @@ class Data_Generator(Sequence):
                 index = index + 1
 
             X = images_data
-            # TODO: The output(s) should be definable, but for now just create a one hot out of the binary epidural
-            Y = np.eye(2)[dataset_chunk.dataset['epidural'].values]
+            Y = np.eye(2)[dataset_chunk.dataset[self.target_type].values]
 
             #self.batch_queue.put((X, np.asarray(Y)))
             self.batch_queue.put((X, Y))
