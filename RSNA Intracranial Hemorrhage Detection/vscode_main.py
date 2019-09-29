@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # In[2]:
-#%matplotlib inline
+%matplotlib inline
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
@@ -110,8 +110,8 @@ def create_specialized_csv(target_type, train_samples, test_samples, keep_existi
 batch_size = 100
 image_width = 128
 image_height = 128
-train_samples = 0.05
-test_samples = 0.01
+train_samples = 0.98
+test_samples = 0.02
 target_type = 'intraventricular'
 # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
 load_existing_cache = False
@@ -266,7 +266,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_o
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
 model.save('model_{0}'.format(target_type))
-#model.load_weights('best_model_weights_{0}'.format(target_type))
+model.load_weights('best_model_weights_{0}'.format(target_type))
 
 start = time.time()
 
@@ -304,12 +304,12 @@ for i in range(60000):
         best_val_loss = validation_loss
         model.save_weights('best_model_weights_{0}'.format(target_type))
         print("New best test loss!")
-        #live_plot(plotData, logarithmic=True)
+        live_plot(plotData, logarithmic=True)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
-        #live_plot(plotData, logarithmic=True)
+        live_plot(plotData, logarithmic=True)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 
