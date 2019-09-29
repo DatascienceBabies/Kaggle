@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # In[2]:
-%matplotlib inline
+#%matplotlib inline
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
@@ -79,8 +79,14 @@ def create_specialized_csv(target_type, train_samples, test_samples, keep_existi
     if keep_existing_cache and os.path.isfile(train_csv_file) and os.path.isfile(test_csv_file):
         # If csv files already exist, then keep them
         return train_csv_file, test_csv_file
+
+    ds = pd.read_csv('stage_1_train_nice.csv')        
+
+    if train_samples + test_samples <= 1:
+        total_examples = ds[ds[target_type] == 1].shape[0]
+        train_samples = math.floor(total_examples * train_samples)
+        test_samples = math.floor(total_examples * test_samples)
     
-    ds = pd.read_csv('stage_1_train_nice.csv')
     dataset = ds[ds[target_type] == 1].sample(train_samples)
     ds = ds.drop(dataset.index)
     none_ds = ds[ds['any'] == 0].sample(train_samples)
@@ -104,9 +110,9 @@ def create_specialized_csv(target_type, train_samples, test_samples, keep_existi
 batch_size = 100
 image_width = 128
 image_height = 128
-train_samples = 60000
-test_samples = 2000
-target_type = 'any'
+train_samples = 0.05
+test_samples = 0.01
+target_type = 'intraventricular'
 # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
 load_existing_cache = False
 
@@ -122,7 +128,7 @@ data_generator_train = Data_Generator.Data_Generator(
     include_resized_mini_images=True,
     output_test_images=False,
     cache_data=True,
-    cache_location='c:/temp/cache_train.dat',
+    cache_location='./data/cache_train.dat',
     keep_existing_cache=load_existing_cache,
     queue_workers=3,
     queue_size=50)
@@ -137,7 +143,7 @@ data_generator_test = Data_Generator.Data_Generator(
     './data/stage_1_train_images',
     include_resized_mini_images=True,
     cache_data=True,
-    cache_location='c:/temp/cache_test.dat',
+    cache_location='./data/cache_test.dat',
     keep_existing_cache=load_existing_cache,
     queue_workers=1,
     queue_size=30)
@@ -205,41 +211,41 @@ model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_1', input_shape
 #input_img = first_layer.input
 #dream = input_img
 model.add(Activation("relu"))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_2'))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 #model.add(Dropout(0.25))
 
 #2
 model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_1_1'))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_2_2'))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 #model.add(Dropout(0.25))
 
 #flatten
 model.add(Flatten())
 model.add(Activation("relu"))
 model.add(Dense(100))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Activation("relu"))
 model.add(Dense(300))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Activation("relu"))
 model.add(Dense(100))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Activation("relu"))
 model.add(Dense(50))
-model.add(Dropout(0.05))
+model.add(Dropout(0.01))
 model.add(Activation("relu"))
 
 model.add(Dense(2))
@@ -298,12 +304,12 @@ for i in range(60000):
         best_val_loss = validation_loss
         model.save_weights('best_model_weights_{0}'.format(target_type))
         print("New best test loss!")
-        live_plot(plotData, logarithmic=True)
+        #live_plot(plotData, logarithmic=True)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
-        live_plot(plotData, logarithmic=True)
+        #live_plot(plotData, logarithmic=True)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 

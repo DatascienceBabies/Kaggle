@@ -230,7 +230,6 @@ class Data_Generator(Sequence):
                 X = images_data
                 Y = np.eye(2)[dataset_chunk.dataset[self.target_type].values]
 
-                #self.batch_queue.put((X, np.asarray(Y)))
                 self.batch_queue.put((X, Y))
             except Exception as e:
                 print('Failed to queue image with ID ' + row[1]['ID'] + ' with exception ' + str(e))

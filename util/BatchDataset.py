@@ -23,7 +23,7 @@ class BatchDataset:
         self._df_chunk = pd.read_csv(file_path, chunksize=chunk_size)
         self._dataset_lines = self._count_lines_in_file(self._csv_file_path) - 1
         self._chunks_read = 0
-        self._total_chunks = self._dataset_lines / self._chunk_size
+        self._total_chunks = math.ceil(self._dataset_lines / self._chunk_size)
 
     # Returns a list of chunk IDs
     #def chunk_ids(self):
