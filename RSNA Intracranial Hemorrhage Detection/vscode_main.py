@@ -260,7 +260,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_o
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
 model.save('model_{0}'.format(target_type))
-model.load_weights('best_model_weights')
+#model.load_weights('best_model_weights_{0}'.format(target_type))
 
 start = time.time()
 
