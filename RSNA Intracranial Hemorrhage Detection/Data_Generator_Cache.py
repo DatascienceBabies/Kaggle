@@ -3,6 +3,7 @@ import os
 import h5py
 import numpy as np
 from threading import Lock
+import time
 
 class Data_Generator_Cache:
     _cache_location = None
@@ -30,11 +31,17 @@ class Data_Generator_Cache:
         if keep_existing_cache:
             print('##### Warning, an existing data cache ' + self._cache_location + ' is being used #####')
             # Check the contents of the file and cache the key - index
+            print('Initialization data cache ' + self._cache_location)
+            start_time = time.time()
             with h5py.File(cache_location, 'r') as file:
+                total_length = file['key'].shape[0]
                 for key in file['key']:
+                    if time.time() - start_time >= 1:
+                        start_time = time.time()
+                        print ('\r', round(self._last_index_position/total_length*100, 1),' percent complete         ', end='')
                     self._key_index_dictionary[key[0]] = self._last_index_position
                     self._last_index_position = self._last_index_position + 1
-            a = 5
+                print('')
             
         else:
             with h5py.File(cache_location, 'w') as file:

@@ -160,7 +160,7 @@ class Data_Generator(Sequence):
                 self.image_height,
                 keep_existing_cache=keep_existing_cache,
                 key_length=12
-            )        
+            )
 
         for _ in range(self.queue_workers):
             worker = threading.Thread(target=self._worker_queue_data, args=())
@@ -194,43 +194,47 @@ class Data_Generator(Sequence):
 
     def _worker_queue_data(self):
         while 1:
-            # Fetch the next csv chunk
-            self.batch_dataset_mutex.acquire()
-            dataset_chunk = self.batch_dataset.get_next_chunk()
-            self.batch_dataset_mutex.release()
+            try:
+                # Fetch the next csv chunk
+                self.batch_dataset_mutex.acquire()
+                dataset_chunk = self.batch_dataset.get_next_chunk()
+                self.batch_dataset_mutex.release()
 
-            # Add batch of image data as Y
-            # Open first image to get width x height. Assume all other images to be same resolution
-            images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 3))
-            index = 0
-            for row in dataset_chunk.dataset.iterrows():
-                if self.cache_data and self.data_generator_cache.key_exists(row[1]['ID']):
-                    images_data[index, :, :, :] = self.data_generator_cache.get_image(row[1]['ID'])
+                # Add batch of image data as Y
+                # Open first image to get width x height. Assume all other images to be same resolution
+                images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 3))
+                index = 0
+                for row in dataset_chunk.dataset.iterrows():
+                    if self.cache_data and self.data_generator_cache.key_exists(row[1]['ID']):
+                        images_data[index, :, :, :] = self.data_generator_cache.get_image(row[1]['ID'])
+                        index = index + 1
+                        continue
+
+                    # TODO: Send in width and height as constructor parameters
+                    if self.archive != None:
+                        image_data = self.open_dcm_image_from_zip(row[1]['ID'])
+                    else:
+                        image_data = self.open_dcm_image(row[1]['ID'])
+
+                    if image_data.shape[1] != self.original_width or image_data.shape[0] != self.original_height:
+                        image_data = self._resize_image(image_data, self.original_width, self.original_height)
+
+                    if self.include_resized_mini_images:
+                        image_data = self._add_smaller_images(image_data)
+
+                    images_data[index, :, :, :] = image_data
+                    if self.cache_data:
+                        self.data_generator_cache.add_to_cache(image_data, row[1]['ID'])
                     index = index + 1
-                    continue
 
-                # TODO: Send in width and height as constructor parameters
-                if self.archive != None:
-                    image_data = self.open_dcm_image_from_zip(row[1]['ID'])
-                else:
-                    image_data = self.open_dcm_image(row[1]['ID'])
+                X = images_data
+                Y = np.eye(2)[dataset_chunk.dataset[self.target_type].values]
 
-                if image_data.shape[1] != self.original_width or image_data.shape[0] != self.original_height:
-                    image_data = self._resize_image(image_data, self.original_width, self.original_height)
-
-                if self.include_resized_mini_images:
-                    image_data = self._add_smaller_images(image_data)
-
-                images_data[index, :, :, :] = image_data
-                if self.cache_data:
-                    self.data_generator_cache.add_to_cache(image_data, row[1]['ID'])
-                index = index + 1
-
-            X = images_data
-            Y = np.eye(2)[dataset_chunk.dataset[self.target_type].values]
-
-            #self.batch_queue.put((X, np.asarray(Y)))
-            self.batch_queue.put((X, Y))
+                #self.batch_queue.put((X, np.asarray(Y)))
+                self.batch_queue.put((X, Y))
+            except Exception as e:
+                print('Failed to queue image with ID ' + row[1]['ID'] + ' with exception ' + str(e))
+                os._exit(1)
 
     def _store_debug_picture(self, X, Y):
         if time.time() - self.last_test_image_created > 10:
