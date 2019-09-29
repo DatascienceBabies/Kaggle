@@ -224,7 +224,7 @@ plotData = collections.defaultdict(list)
 # Train the model
 epochs_to_train = config['model']['epochs_to_train']
 items_trained_per_epoch = config['model']['items_trained_per_epoch']
-items_tested_per_epoch = config['model']['items_tested_per_epoch']'
+items_tested_per_epoch = config['model']['items_tested_per_epoch']
 
 if items_trained_per_epoch <= 1:
     items_trained_per_epoch = batch_size * batch_dataset_train.batch_amount * items_trained_per_epoch
