@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # In[2]:
-%matplotlib inline
+#%matplotlib inline
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
@@ -99,9 +99,12 @@ def create_specialized_csv(target_type, train_samples, test_samples):
 batch_size = 100
 image_width = 128
 image_height = 128
-train_samples = 20000
-test_samples = 400
+train_samples = 60000
+#train_samples = 2000
+test_samples = 2000
 target_type = 'any'
+# Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
+keep_existing_cache = False
 
 train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples)
 
@@ -113,9 +116,12 @@ data_generator_train = Data_Generator.Data_Generator(
     image_height,
     './data/stage_1_train_images',
     include_resized_mini_images=True,
-    output_test_images=True,
+    output_test_images=False,
     cache_data=True,
-    cache_location='g:/temp/cache_train.dat')
+    cache_location='g:/temp/cache_train.dat',
+    keep_existing_cache=keep_existing_cache,
+    queue_workers=4,
+    queue_size=50)
 #data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
 batch_dataset_test = bds.BatchDataset('./' + test_csv_file, batch_size)
@@ -127,7 +133,10 @@ data_generator_test = Data_Generator.Data_Generator(
     './data/stage_1_train_images',
     include_resized_mini_images=True,
     cache_data=True,
-    cache_location='g:/temp/cache_test.dat')
+    cache_location='g:/temp/cache_test.dat',
+    keep_existing_cache=keep_existing_cache,
+    queue_workers=4,
+    queue_size=50)
 #data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 #data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, './data/stage_1_train_images/')
 
@@ -192,30 +201,41 @@ model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_1', input_shape
 #input_img = first_layer.input
 #dream = input_img
 model.add(Activation("relu"))
+model.add(Dropout(0.05))
 model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_2'))
+model.add(Dropout(0.05))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.05))
 #model.add(Dropout(0.25))
 
 #2
 model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_1_1'))
+model.add(Dropout(0.05))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.05))
 model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_2_2'))
+model.add(Dropout(0.05))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.05))
 #model.add(Dropout(0.25))
 
 #flatten
 model.add(Flatten())
 model.add(Activation("relu"))
 model.add(Dense(100))
+model.add(Dropout(0.05))
 model.add(Activation("relu"))
 model.add(Dense(300))
+model.add(Dropout(0.05))
 model.add(Activation("relu"))
 model.add(Dense(100))
+model.add(Dropout(0.05))
 model.add(Activation("relu"))
 model.add(Dense(50))
+model.add(Dropout(0.05))
 model.add(Activation("relu"))
 
 model.add(Dense(2))
@@ -236,7 +256,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_o
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
 model.save('model')
-#model.load_weights('best_model_weights')
+model.load_weights('best_model_weights')
 
 start = time.time()
 
@@ -246,7 +266,7 @@ plotData = collections.defaultdict(list)
 # Train the model
 for i in range(60000):
     # TODO: Temporarily reduce validation size to get faster tests while developing
-    steps_per_epoch_size = batch_dataset_train.batch_amount() / 30
+    steps_per_epoch_size = batch_dataset_train.batch_amount() / 40
     validation_step_size = batch_dataset_test.batch_amount() / 5
 
     history = model.fit_generator(generator=data_generator_train,

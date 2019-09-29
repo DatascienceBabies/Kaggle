@@ -35,8 +35,8 @@ class Data_Generator(Sequence):
     image_height = None
     batch_queue = None
     batch_dataset_mutex = None
-    queue_workers = 1
-    queue_size = 30
+    queue_workers = None
+    queue_size = None
     output_test_images = None
     last_test_image_created = None
     include_resized_mini_images = None
@@ -121,8 +121,12 @@ class Data_Generator(Sequence):
         output_test_images=False,
         include_resized_mini_images=False,
         cache_data=False,
-        cache_location=None):
+        cache_location=None,
+        keep_existing_cache=False,
+        queue_workers=1,
+        queue_size=30):
         
+        self.queue_size = queue_size
         self.batch_dataset = batch_dataset
         self.image_width = image_width
         self.image_height = image_height
@@ -137,6 +141,7 @@ class Data_Generator(Sequence):
         self.original_height = image_height
         self.cache_data = cache_data
         self.target_type = target_type
+        self.queue_workers = queue_workers
 
         if (self.include_resized_mini_images):
             self.image_width = math.ceil(self.image_width * 1.5)
@@ -153,6 +158,7 @@ class Data_Generator(Sequence):
                 cache_location,
                 self.image_width,
                 self.image_height,
+                keep_existing_cache=keep_existing_cache,
                 key_length=12
             )        
 
@@ -240,7 +246,7 @@ class Data_Generator(Sequence):
         try:
             item = self.batch_queue.get_nowait()
         except:
-            # print("Unable to immediately fetch new databatch")
+            print("Unable to immediately fetch new databatch")
             item = self.batch_queue.get(block=True)
         X = item[0]
         Y = item[1]
