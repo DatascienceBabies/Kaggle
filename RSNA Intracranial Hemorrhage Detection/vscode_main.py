@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # In[2]:
-#%matplotlib inline
+%matplotlib inline
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
@@ -72,8 +72,14 @@ def live_image(image):
 
 
 #%%
-def create_specialized_csv(target_type, train_samples, test_samples):
+def create_specialized_csv(target_type, train_samples, test_samples, keep_existing_cache):
     train_csv_file = target_type + '_train_' + str(train_samples) + '.csv'
+    test_csv_file = target_type + '_test_' + str(test_samples) + '.csv'
+
+    if keep_existing_cache and os.path.isfile(train_csv_file) and os.path.isfile(test_csv_file):
+        # If csv files already exist, then keep them
+        return train_csv_file, test_csv_file
+    
     ds = pd.read_csv('stage_1_train_nice.csv')
     dataset = ds[ds[target_type] == 1].sample(train_samples)
     ds = ds.drop(dataset.index)
@@ -82,7 +88,6 @@ def create_specialized_csv(target_type, train_samples, test_samples):
     epidural_train_ds = pd.concat([dataset, none_ds]).sample(frac=1)
     epidural_train_ds.to_csv(train_csv_file, index=None, header=True)
 
-    test_csv_file = target_type + '_test_' + str(test_samples) + '.csv'
     dataset = ds[ds[target_type] == 1].sample(test_samples)
     ds = ds.drop(dataset.index)
     none_ds = ds[ds['any'] == 0].sample(test_samples)
@@ -100,13 +105,12 @@ batch_size = 100
 image_width = 128
 image_height = 128
 train_samples = 60000
-#train_samples = 2000
 test_samples = 2000
 target_type = 'any'
 # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
-keep_existing_cache = False
+load_existing_cache = False
 
-train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples)
+train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples, load_existing_cache)
 
 batch_dataset_train = bds.BatchDataset('./' + train_csv_file, batch_size)
 data_generator_train = Data_Generator.Data_Generator(
@@ -118,9 +122,9 @@ data_generator_train = Data_Generator.Data_Generator(
     include_resized_mini_images=True,
     output_test_images=False,
     cache_data=True,
-    cache_location='c:/temp/cache_train.dat')
-    keep_existing_cache=keep_existing_cache,
-    queue_workers=4,
+    cache_location='c:/temp/cache_train.dat',
+    keep_existing_cache=load_existing_cache,
+    queue_workers=3,
     queue_size=50)
 #data_generator_train = Data_Generator.Data_Generator(batch_dataset_train, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 
@@ -133,10 +137,10 @@ data_generator_test = Data_Generator.Data_Generator(
     './data/stage_1_train_images',
     include_resized_mini_images=True,
     cache_data=True,
-    cache_location='c:/temp/cache_test.dat')
-    keep_existing_cache=keep_existing_cache,
-    queue_workers=4,
-    queue_size=50)
+    cache_location='c:/temp/cache_test.dat',
+    keep_existing_cache=load_existing_cache,
+    queue_workers=1,
+    queue_size=30)
 #data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, 'stage_1_train_images', './data/rsna-intracranial-hemorrhage-detection.zip')
 #data_generator_test = Data_Generator.Data_Generator(batch_dataset_test, image_width, image_height, './data/stage_1_train_images/')
 
