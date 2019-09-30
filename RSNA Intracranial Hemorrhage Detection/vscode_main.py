@@ -2,11 +2,18 @@
 # coding: utf-8
 
 # In[2]:
-%matplotlib inline
-
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Dropout
-from keras.optimizers import Adam
+#%matplotlib inline
+from tensorflow.python.keras.models import Sequential
+from tensorflow.python.keras.optimizers import Adam
+from tensorflow.python.keras.utils import plot_model
+from tensorflow.python.keras.models import Model
+from tensorflow.python.keras.applications import MobileNet
+from tensorflow.python.keras import optimizers
+from tensorflow.python.keras.callbacks import ModelCheckpoint
+from tensorflow.python.keras.layers import Dense, Flatten, Convolution2D, GlobalAveragePooling2D, Input, AveragePooling2D, Activation, Dropout
+from tensorflow.python.keras.layers.convolutional import Conv2D
+from tensorflow.python.keras.layers.pooling import MaxPooling2D
+import keras.metrics
 import csv
 import numpy as np
 import random
@@ -17,7 +24,6 @@ import math
 from matplotlib import pyplot as plt
 import collections
 from IPython.display import clear_output
-from keras.layers import Dense, Conv2D, Flatten
 import os
 import sys
 current_dir = os.getcwd()
@@ -25,32 +31,36 @@ util_path = os.path.join(os.path.dirname(current_dir), '', 'util')
 sys.path.append(util_path)
 import Dataset as ds
 import DatasetModifier as dsm
-from keras.callbacks import ModelCheckpoint
 import sys
 import time
 import Data_Generator
 import BatchDataset as bds
-from keras.layers import AveragePooling2D
-from keras.utils import plot_model
-from keras.models import Model
-from keras.layers import Input
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers.convolutional import Conv2D
-from keras.layers.pooling import MaxPooling2D
-from keras.applications import MobileNet
-from keras.layers import Dense,GlobalAveragePooling2D
-from keras.layers import Convolution2D
-from keras import optimizers
 import time
-import keras.metrics
 from matplotlib import pyplot as plt
 import yaml
+import tensorflow as tf
+import json
 
 
 #%% Open the configuration file
 with open("config.yml", 'r') as ymlfile:
     config = yaml.load(ymlfile)
+
+
+#%% Configure the network training
+address = config['distributed_training']['address']
+task_type = config['distributed_training']['task_type']
+task_index = config['distributed_training']['task_index']
+total_worker_count = config['distributed_training']['total_worker_count']
+
+os.environ['TF_CONFIG'] = json.dumps({
+    'cluster': {
+        task_type: [address]
+    },
+    'task': {'type': task_type, 'index': task_index}
+})
+
+# strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
 
 
 # In[3]: Creates a live plot which is shown while a cell is being run
@@ -159,24 +169,28 @@ data_generator_test = Data_Generator.Data_Generator(
 
 
 # In[20]: create model
+#with strategy.scope():
 model = Sequential()
 
-model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_1', input_shape = (data_generator_train.image_height, data_generator_train.image_width, 3)))
+model.add(Convolution2D(32, (5, 5), padding='same',name='conv1_1', input_shape = (
+    data_generator_train.image_height,
+    data_generator_train.image_width,
+    3)))
 model.add(Activation("relu"))
 model.add(Dropout(0.15))
-model.add(Convolution2D(32, 5, 5, border_mode='same',name='conv1_2'))
+model.add(Convolution2D(32, (5, 5), padding='same',name='conv1_2'))
 model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.15))
 
 #2
-model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_1_1'))
+model.add(Convolution2D(64, (5, 5), padding='same',name='conv2_1_1'))
 model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.15))
-model.add(Convolution2D(64, 5, 5, border_mode='same',name='conv2_2_2'))
+model.add(Convolution2D(64, (5, 5), padding='same',name='conv2_2_2'))
 model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
@@ -242,6 +256,7 @@ for i in range(epochs_to_train):
     steps_per_epoch_size = math.floor(items_trained_per_epoch / batch_size)
     validation_step_size = math.floor(items_tested_per_epoch / batch_size)
 
+    #history = model.fit(data_generator_train.getitem_tensorflow_2(), steps_per_epoch=steps_per_epoch_size, epochs=1)
     history = model.fit_generator(generator=data_generator_train,
                         steps_per_epoch=steps_per_epoch_size,
                         epochs=1,

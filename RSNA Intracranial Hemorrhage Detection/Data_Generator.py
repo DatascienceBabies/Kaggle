@@ -2,10 +2,10 @@ from skimage.io import imread
 from skimage.transform import resize
 import numpy as np
 import BatchDataset as bds
-from keras.utils import Sequence
+from tensorflow.python.keras.utils import Sequence
 import pydicom as dicom
 import os
-from keras.utils import to_categorical
+from tensorflow.python.keras.utils import to_categorical
 from sklearn.preprocessing import OneHotEncoder
 import cv2
 import zipfile
