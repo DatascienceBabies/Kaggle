@@ -107,12 +107,12 @@ def create_specialized_csv(target_type, train_samples, test_samples, keep_existi
 
 
 #%% Define dataset
-batch_size = 100
+batch_size = 50
 image_width = 128
 image_height = 128
 train_samples = 0.98
 test_samples = 0.02
-target_type = 'intraventricular'
+target_type = 'subarachnoid'
 # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
 load_existing_cache = False
 
@@ -266,7 +266,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_o
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
 model.save('model_{0}'.format(target_type))
-model.load_weights('best_model_weights_{0}'.format(target_type))
+#model.load_weights('best_model_weights_{0}'.format(target_type))
 
 start = time.time()
 
