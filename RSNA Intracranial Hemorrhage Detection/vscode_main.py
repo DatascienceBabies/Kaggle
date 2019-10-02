@@ -46,6 +46,14 @@ import json
 with open("config.yml", 'r') as ymlfile:
     config = yaml.load(ymlfile)
 
+    if (os.path.isfile('config.user.yml')):
+        with open("config.user.yml", 'r') as user_config_file:
+            user_yaml = yaml.load(user_config_file)
+            for area in user_yaml:
+                for key in user_yaml[area]:
+                    print("User override found for: {0}".format(key))
+                    config[area][key] = user_yaml[area][key]
+
 
 #%% Configure the network training
 address = config['distributed_training']['address']
