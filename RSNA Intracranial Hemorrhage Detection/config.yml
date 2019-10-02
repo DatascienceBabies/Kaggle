@@ -1,0 +1,27 @@
+dataset:
+  batch_size: 100
+  image_width: 128
+  image_height: 128
+  train_samples: 0.98
+  test_samples: 0.02
+  target_type: 'intraventricular'
+  # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
+  load_existing_cache: False
+  train_cache_file: './data/cache_train.dat'
+  test_cache_file: './data/cache_test.dat'
+  train_base_image_path: './data/stage_1_train_images'
+  test_base_image_path: './data/stage_1_train_images'
+model:
+  epochs_to_train: 60000
+  # Can be <= 1 for a percentage of the full trainset
+  # Can be >= 2 for an exact amount
+  items_trained_per_epoch: 2000
+  # Can be <= 1 for a percentage of the full testset
+  # Can be >= 2 for an exact amount
+  items_tested_per_epoch: 400
+  load_existing_weights: False
+graph:
+  display_train_loss: True
+  display_validation_loss: True
+  display_train_accuracy: True
+  display_validation_accuracy: True
