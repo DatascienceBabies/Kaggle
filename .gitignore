@@ -3,6 +3,6 @@
 **/.vscode/*
 **/.ipynb_checkpoints/*
 **/__pycache__/*
-/RSNA Intracranial Hemorrhage Detection/*.csv
+RSNA Intracranial Hemorrhage Detection/config.user.yml
 /RSNA Intracranial Hemorrhage Detection/best_model_weights_*
 /RSNA Intracranial Hemorrhage Detection/ModelSaves/*
