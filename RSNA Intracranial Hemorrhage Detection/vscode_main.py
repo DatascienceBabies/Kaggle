@@ -3,6 +3,7 @@
 
 # In[2]:
 #%matplotlib inline
+#import tensorflow as tf
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.utils import plot_model
@@ -10,7 +11,7 @@ from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.applications import MobileNet
 from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.callbacks import ModelCheckpoint
-from tensorflow.python.keras.layers import Dense, Flatten, Convolution2D, GlobalAveragePooling2D, Input, AveragePooling2D, Activation, Dropout
+from tensorflow.python.keras.layers import BatchNormalizationV2, Dense, Flatten, Convolution2D, GlobalAveragePooling2D, Input, AveragePooling2D, Activation, Dropout
 from tensorflow.python.keras.layers.convolutional import Conv2D
 from tensorflow.python.keras.layers.pooling import MaxPooling2D
 import keras.metrics
@@ -64,17 +65,31 @@ os.environ['TF_CONFIG'] = json.dumps({
 
 
 # In[3]: Creates a live plot which is shown while a cell is being run
+def moving_average(values, averaging_size=3) :
+    ret = np.cumsum(values, dtype=float)
+    ret[averaging_size:] = ret[averaging_size:] - ret[:-averaging_size]
+    return ret[averaging_size - 1:] / averaging_size
+
 def live_plot(data_dict, figsize=(15,5), title='', logarithmic = False):
     clear_output(wait=True)
     plt.figure(figsize=figsize)
     for label,data in data_dict.items():
         if logarithmic:
             plt.yscale("log")
-        plt.plot(data, label=label)
+        plt.plot(moving_average(data, 50), label=label)
     plt.title(title)
     plt.grid(True)
     plt.xlabel('epoch')
     plt.legend(loc='center left') # the plot evolves to the right
+
+    train_min = plotData['train_loss'][np.argmin(plotData['train_loss'])]
+    train_min_x = np.argmin(plotData['train_loss'])
+    plt.text(train_min_x, train_min, "%.2f" % train_min, fontsize=18)
+
+    validation_min = plotData['validation_loss'][np.argmin(plotData['validation_loss'])]
+    validation_min_x = np.argmin(plotData['validation_loss'])
+    plt.text(validation_min_x, validation_min, "%.2f" % validation_min, fontsize=18)
+
     plt.show()
 
 def live_image(image):
@@ -94,6 +109,7 @@ def create_specialized_csv(target_type, train_samples, test_samples, keep_existi
 
     if keep_existing_cache and os.path.isfile(train_csv_file) and os.path.isfile(test_csv_file):
         # If csv files already exist, then keep them
+        # TODO: Check content size of files to make sure we have the same amount of samples
         return train_csv_file, test_csv_file
 
     ds = pd.read_csv('stage_1_train_nice.csv')        
@@ -135,6 +151,10 @@ train_cache_file = config['dataset']['train_cache_file']
 test_cache_file = config['dataset']['test_cache_file']
 train_base_image_path = config['dataset']['train_base_image_path']
 test_base_image_path = config['dataset']['test_base_image_path']
+use_cache_train = config['dataset']['use_cache_train']
+use_cache_test = config['dataset']['use_cache_test']
+output_test_images = config['dataset']['output_test_images']
+random_train_image_transformation = config['dataset']['random_train_image_transformation']
 
 train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples, load_existing_cache)
 
@@ -146,12 +166,14 @@ data_generator_train = Data_Generator.Data_Generator(
     image_height,
     train_base_image_path,
     include_resized_mini_images=True,
-    output_test_images=False,
-    cache_data=True,
+    output_test_images=output_test_images,
+    cache_data=use_cache_train,
     cache_location=train_cache_file,
     keep_existing_cache=load_existing_cache,
     queue_workers=3,
-    queue_size=50)
+    queue_size=50,
+    color=False,
+    random_image_transformation=random_train_image_transformation)
 
 batch_dataset_test = bds.BatchDataset('./' + test_csv_file, batch_size)
 data_generator_test = Data_Generator.Data_Generator(
@@ -161,61 +183,62 @@ data_generator_test = Data_Generator.Data_Generator(
     image_height,
     test_base_image_path,
     include_resized_mini_images=True,
-    cache_data=True,
+    cache_data=use_cache_test,
     cache_location=test_cache_file,
     keep_existing_cache=load_existing_cache,
-    queue_workers=1,
-    queue_size=30)
+    queue_workers=3,
+    queue_size=30,
+    color=False)
 
 
 # In[20]: create model
 #with strategy.scope():
 model = Sequential()
 
-model.add(Convolution2D(32, (5, 5), padding='same',name='conv1_1', input_shape = (
+model.add(Convolution2D(24, (5, 5), padding='same',name='conv1_1', input_shape = (
     data_generator_train.image_height,
     data_generator_train.image_width,
-    3)))
+    1)))
 model.add(Activation("relu"))
-model.add(Dropout(0.15))
-model.add(Convolution2D(32, (5, 5), padding='same',name='conv1_2'))
-model.add(Dropout(0.15))
+#model.add(Dropout(0.15))
+model.add(Convolution2D(24, (5, 5), padding='same',name='conv1_2'))
+#model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.15))
+#model.add(Dropout(0.15))
 
 #2
-model.add(Convolution2D(64, (5, 5), padding='same',name='conv2_1_1'))
-model.add(Dropout(0.15))
+model.add(Convolution2D(50, (5, 5), padding='same',name='conv2_1_1'))
+#model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.15))
-model.add(Convolution2D(64, (5, 5), padding='same',name='conv2_2_2'))
-model.add(Dropout(0.15))
+#model.add(Dropout(0.15))
+model.add(Convolution2D(50, (5, 5), padding='same',name='conv2_2_2'))
+#model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.15))
+#model.add(Dropout(0.15))
 
 #Final decisions
 model.add(Flatten())
 model.add(Activation("relu"))
-model.add(Dense(100))
-model.add(Dropout(0.15))
+model.add(Dense(80))
+#model.add(Dropout(0.15))
 model.add(Activation("relu"))
-model.add(Dense(300))
-model.add(Dropout(0.15))
+model.add(Dense(240))
+#model.add(Dropout(0.15))
 model.add(Activation("relu"))
-model.add(Dense(100))
-model.add(Dropout(0.15))
+model.add(Dense(80))
+#model.add(Dropout(0.15))
 model.add(Activation("relu"))
-model.add(Dense(50))
-model.add(Dropout(0.15))
+model.add(Dense(35))
+#model.add(Dropout(0.15))
 model.add(Activation("relu"))
 
 model.add(Dense(2))
 model.add(Activation('softmax'))
 
-optimizer = Adam(lr=0.00001, decay=0.000001)
+optimizer = Adam(lr=0.000010)
 model.compile(loss='binary_crossentropy', optimizer=optimizer,metrics=['accuracy'])
 
 print(model.summary())
@@ -238,59 +261,54 @@ plotData = collections.defaultdict(list)
 # Train the model
 epochs_to_train = config['model']['epochs_to_train']
 items_trained_per_epoch = config['model']['items_trained_per_epoch']
-items_tested_per_epoch = config['model']['items_tested_per_epoch']
+epochs_between_testing = config['model']['epochs_between_testing']
 
 if items_trained_per_epoch <= 1:
     items_trained_per_epoch = batch_size * batch_dataset_train.batch_amount * items_trained_per_epoch
-
-if items_tested_per_epoch <= 1:
-    items_tested_per_epoch = batch_size * batch_dataset_test.batch_amount * items_tested_per_epoch
 
 display_train_loss = config['graph']['display_train_loss']
 display_validation_loss = config['graph']['display_validation_loss']
 display_train_accuracy = config['graph']['display_train_accuracy']
 display_validation_accuracy = config['graph']['display_validation_accuracy']
+validation_loss = 0
 
 for i in range(epochs_to_train):
-    # TODO: Temporarily reduce validation size to get faster tests while developing
     steps_per_epoch_size = math.floor(items_trained_per_epoch / batch_size)
-    validation_step_size = math.floor(items_tested_per_epoch / batch_size)
 
-    #history = model.fit(data_generator_train.getitem_tensorflow_2(), steps_per_epoch=steps_per_epoch_size, epochs=1)
-    history = model.fit_generator(generator=data_generator_train,
-                        steps_per_epoch=steps_per_epoch_size,
-                        epochs=1,
-                        verbose=1,
-                        validation_data=data_generator_test,
-                        validation_steps=validation_step_size,
-                        use_multiprocessing=False,
-                        workers=0,
-                        max_queue_size=32)
+    history = model.fit(
+        x=data_generator_train.getitem_tensorflow_2_X(),
+        y=data_generator_train.getitem_tensorflow_2_Y(),
+        steps_per_epoch=steps_per_epoch_size,
+        epochs=1)
+
+    if i == 0 or i % epochs_between_testing == 0:
+        validation_loss = 0
+        for i in range(data_generator_test.__len__()):
+            validation_loss = validation_loss + model.evaluate(data_generator_test.getitem_tensorflow_2_X(), data_generator_test.getitem_tensorflow_2_Y(), verbose=0)[0]
+        validation_loss = validation_loss / data_generator_test.__len__()
 
     train_accuracy = history.history['acc'][0]
-    validation_accuracy = history.history['val_acc'][0]
     train_loss = history.history['loss'][0]
-    validation_loss = history.history['val_loss'][0]
     
     if display_train_loss:
         plotData['train_loss'].append(train_loss)
     if display_validation_loss:
         plotData['validation_loss'].append(validation_loss)
-    if display_train_accuracy:
-        plotData['train_accuracy'].append(train_accuracy)
-    if display_validation_accuracy:
-        plotData['validation_accuracy'].append(validation_accuracy)    
+    #if display_train_accuracy:
+        #plotData['train_accuracy'].append(train_accuracy)
+    #if display_validation_accuracy:
+        #plotData['validation_accuracy'].append(validation_accuracy)    
 
     if best_val_loss > validation_loss:
         best_val_loss = validation_loss
         model.save_weights('best_model_weights_{0}'.format(target_type))
         print("New best test loss!")
-        live_plot(plotData, logarithmic=True)
+        #live_plot(plotData, logarithmic=True)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
-        live_plot(plotData, logarithmic=True)
+        #live_plot(plotData, logarithmic=True)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 

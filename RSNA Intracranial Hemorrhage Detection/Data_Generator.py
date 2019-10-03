@@ -23,6 +23,7 @@ import skimage as sk
 import time
 import random
 from Data_Generator_Cache import Data_Generator_Cache
+import Image_Transformer
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
@@ -45,6 +46,9 @@ class Data_Generator(Sequence):
     cache_data = None
     data_generator_cache = None
     target_type = None
+    random_image_transformation = None
+    image_transformer = None
+    
 
     def open_dcm_image(self, ID):
         try:
@@ -79,17 +83,21 @@ class Data_Generator(Sequence):
         # if image.min() < 0:
         #     image = image - image.min()        
 
+        # TODO: Really check how the pixel resizing should be done here...
         # Convert to 0-255 according to https://www.leadtools.com/sdk/medical/dicom-spec17#targetText=The%20minimum%20actual%20Pixel%20Sample,Value%20(0028%2C0107).
-        max_dcm_pixel_value = math.pow(2, dcm_image.BitsStored)
-        image = image / max_dcm_pixel_value * 255
-        image = image / image.max() * 255
+        # max_dcm_pixel_value = math.pow(2, dcm_image.BitsStored)
+        # image = image / max_dcm_pixel_value * 255
+        # image = image / image.max() * 255
 
         # Sanity check
         # if image.max() > 255:
         #     raise AttributeError("Image max out of range")
 
         # Create three pixel channels
-        image = np.stack((image,)*3, axis=-1)
+        if self.color:
+            image = np.stack((image,)*3, axis=-1)
+        else:
+            image = np.stack((image,)*1, axis=-1)
 
         # Check for sanity stuff
         
@@ -124,7 +132,9 @@ class Data_Generator(Sequence):
         cache_location=None,
         keep_existing_cache=False,
         queue_workers=1,
-        queue_size=30):
+        queue_size=30,
+        color=True,
+        random_image_transformation=False):
         
         self.queue_size = queue_size
         self.batch_dataset = batch_dataset
@@ -142,6 +152,11 @@ class Data_Generator(Sequence):
         self.cache_data = cache_data
         self.target_type = target_type
         self.queue_workers = queue_workers
+        self.color = color
+        self.random_image_transformation = random_image_transformation
+
+        if (self.random_image_transformation):
+            self.image_transformer = Image_Transformer.Image_Transformer()
 
         if (self.include_resized_mini_images):
             self.image_width = math.ceil(self.image_width * 1.5)
@@ -159,7 +174,8 @@ class Data_Generator(Sequence):
                 self.image_width,
                 self.image_height,
                 keep_existing_cache=keep_existing_cache,
-                key_length=12
+                key_length=12,
+                color=self.color
             )
 
         for _ in range(self.queue_workers):
@@ -183,6 +199,8 @@ class Data_Generator(Sequence):
             new_height = math.floor(new_height / 2)
         
         image = cv2.copyMakeBorder(image, 0, 0, 0, math.floor(image.shape[1] / 2), cv2.BORDER_CONSTANT)
+        if not self.color:
+            image = np.stack((image,)*1, axis=-1)
         y_offset=0
         for i in range(4):
             resized_image = resized_images[i]
@@ -202,29 +220,35 @@ class Data_Generator(Sequence):
 
                 # Add batch of image data as Y
                 # Open first image to get width x height. Assume all other images to be same resolution
-                images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 3))
+                if self.color:
+                    images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 3))
+                else:
+                    images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 1))
                 index = 0
                 for row in dataset_chunk.dataset.iterrows():
+                    image = None
                     if self.cache_data and self.data_generator_cache.key_exists(row[1]['ID']):
-                        images_data[index, :, :, :] = self.data_generator_cache.get_image(row[1]['ID'])
-                        index = index + 1
-                        continue
-
-                    # TODO: Send in width and height as constructor parameters
-                    if self.archive != None:
-                        image_data = self.open_dcm_image_from_zip(row[1]['ID'])
+                        image = self.data_generator_cache.get_image(row[1]['ID'])
                     else:
-                        image_data = self.open_dcm_image(row[1]['ID'])
+                        # TODO: Send in width and height as constructor parameters
+                        if self.archive != None:
+                            image = self.open_dcm_image_from_zip(row[1]['ID'])
+                        else:
+                            image = self.open_dcm_image(row[1]['ID'])
 
-                    if image_data.shape[1] != self.original_width or image_data.shape[0] != self.original_height:
-                        image_data = self._resize_image(image_data, self.original_width, self.original_height)
+                        if image.shape[1] != self.original_width or image.shape[0] != self.original_height:
+                            image = self._resize_image(image, self.original_width, self.original_height)
 
-                    if self.include_resized_mini_images:
-                        image_data = self._add_smaller_images(image_data)
+                        if self.include_resized_mini_images:
+                            image = self._add_smaller_images(image)
 
-                    images_data[index, :, :, :] = image_data
-                    if self.cache_data:
-                        self.data_generator_cache.add_to_cache(image_data, row[1]['ID'])
+                        if self.cache_data:
+                            self.data_generator_cache.add_to_cache(image, row[1]['ID'])
+
+                    if self.random_image_transformation:
+                        image = self.image_transformer.random_transforms(image)
+
+                    images_data[index, :, :, :] = image
                     index = index + 1
 
                 X = images_data
@@ -258,3 +282,28 @@ class Data_Generator(Sequence):
             self._store_debug_picture(X, Y)
 
         return X.astype(int), Y.astype(int)
+
+    # TODO: Well, this is stupid. But I have to try it out...
+    current_item = None
+    def getitem_tensorflow_2_X(self):
+        try:
+            self.current_item = self.batch_queue.get_nowait()
+        except:
+            print("Unable to immediately fetch new databatch")
+            self.current_item = self.batch_queue.get(block=True)
+        X = self.current_item[0]
+
+        if self.output_test_images:
+            Y = self.current_item[1]
+            self._store_debug_picture(X, Y)
+
+        return X.astype(int)
+
+    def getitem_tensorflow_2_Y(self):
+        Y = self.current_item[1]
+
+        if self.output_test_images:
+            X = self.current_item[0]
+            self._store_debug_picture(X, Y)
+
+        return Y.astype(int)

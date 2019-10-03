@@ -11,6 +11,8 @@ class Data_Generator_Cache:
     _key_index_dictionary = None
     _last_index_position = None
     _cache_mutex = None
+    _color = None
+    _channels = None
 
     def __init__(
         self,
@@ -20,12 +22,18 @@ class Data_Generator_Cache:
         key_length,
         keep_existing_cache=False,
         image_datatype=np.float16,
-        start_size=30):
+        start_size=30,
+        color=True):
 
         self._last_index_position = 0
         self._cache_mutex = Lock()
         self._key_index_dictionary = {}
         self._batch_dataset_mutex = Lock()
+        self._color = color
+
+        self._channels = 3
+        if not self._color:
+            self._channels = 1
 
         self._cache_location = cache_location
         if keep_existing_cache:
@@ -45,7 +53,7 @@ class Data_Generator_Cache:
             
         else:
             with h5py.File(cache_location, 'w') as file:
-                file.create_dataset("images", shape=(start_size, height, width, 3), maxshape=(None, height, width, 3), dtype=image_datatype)
+                file.create_dataset("images", shape=(start_size, height, width, self._channels), maxshape=(None, height, width, self._channels), dtype=image_datatype)
                 file.create_dataset("key", shape=(start_size, 1), maxshape=(None, 1), dtype=h5py.special_dtype(vlen=str))
 
 
