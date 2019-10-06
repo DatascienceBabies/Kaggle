@@ -26,11 +26,15 @@ https://developer.nvidia.com/cuda-10.0-download-archive
 Install latest NVIDIA GPU drivers
 
 Via conda, create a new virtual environment and install the following:
+
 conda create -n tensorflow2 python=3.6 cudnn cudatoolkit=10.0
+
 conda activate tensorflow2
 
 Check the following link for the latest tensorflow 2.0 version: https://www.tensorflow.org/install/gpu#tensorflow_20_rc
+
 pip install tensorflow-gpu==2.0.0-rc1
 
 conda install -c anaconda numpy
+
 conda install -c anaconda scikit-learn
