@@ -79,15 +79,16 @@ class Data_Generator(Sequence):
         # should be possible as values should always be low enough (<32k)
         image = image.astype(np.int16)
 
-        # Move to positive pixel values (not needed as long as we do not convert to Hounsfield units?)
-        # if image.min() < 0:
-        #     image = image - image.min()        
+        # Move to positive pixel values
+        #if np.min(image) < 0:
+        #    image = image - np.min(image)
 
-        # TODO: Really check how the pixel resizing should be done here...
         # Convert to 0-255 according to https://www.leadtools.com/sdk/medical/dicom-spec17#targetText=The%20minimum%20actual%20Pixel%20Sample,Value%20(0028%2C0107).
         # max_dcm_pixel_value = math.pow(2, dcm_image.BitsStored)
         # image = image / max_dcm_pixel_value * 255
-        # image = image / image.max() * 255
+
+        # Convert to 0 - 1 range
+        #image = image / np.max(image)
 
         # Sanity check
         # if image.max() > 255:
@@ -244,6 +245,9 @@ class Data_Generator(Sequence):
 
                         if self.cache_data:
                             self.data_generator_cache.add_to_cache(image, row[1]['ID'])
+
+                    # TODO: This is necessary for the image transformations. I guess we can leave it like this, even if it eats up RAM?
+                    image = np.float32(image)
 
                     if self.random_image_transformation:
                         image = self.image_transformer.random_transforms(image)

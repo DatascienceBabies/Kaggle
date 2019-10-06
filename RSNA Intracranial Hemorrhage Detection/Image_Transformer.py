@@ -1,8 +1,12 @@
 import cv2
 import random
 import numpy as np
+import logging
 
 class Image_Transformer():
+
+    def __init__(self):
+        logging.basicConfig(filename='loggOutput.log',level=logging.DEBUG)
 
     def _rotate_image(self, image, angle):
         image_center = tuple(np.array(image.shape[1::-1]) / 2)
@@ -53,11 +57,17 @@ class Image_Transformer():
             return noisy.reshape(image.shape)
     
     def random_transforms(self, image):
-        if random.uniform(0, 1) > 0.3:
-            image = self._rotate_image(image, random.uniform(-15, +15))
-        if random.uniform(0, 1) > 0.3:
-            image = self._flip(image, random.randint(-1, 1))
-        #if random.uniform(0, 1) > 0.3:
-            #image = self._noise(image, random.randint(0, 3))
+        image_safe = np.copy(image)
+        try:
+            if random.uniform(0, 1) > 0.3:
+                image = self._rotate_image(image, random.uniform(-15, +15))
+            if random.uniform(0, 1) > 0.3:
+                image = self._flip(image, random.randint(-1, 1))
+            # if random.uniform(0, 1) > 0.3:
+                # image = self._noise(image, random.randint(0, 3))
+        except Exception as e:
+            print('Image_Transformer failed with exception: ' + str(e))
+            logging.error('Image_Transformer failed with exception: ' + str(e))
+            image = image_safe
 
         return image

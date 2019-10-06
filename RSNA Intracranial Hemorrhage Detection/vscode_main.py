@@ -4,6 +4,7 @@
 # In[2]:
 #%matplotlib inline
 #import tensorflow as tf
+import tensorflow as tf
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.optimizers import Adam
 from tensorflow.python.keras.utils import plot_model
@@ -78,13 +79,13 @@ def moving_average(values, averaging_size=3) :
     ret[averaging_size:] = ret[averaging_size:] - ret[:-averaging_size]
     return ret[averaging_size - 1:] / averaging_size
 
-def live_plot(data_dict, figsize=(15,5), title='', logarithmic = False):
+def live_plot(data_dict, figsize=(15,5), title='', logarithmic = False, averaging_size=50):
     clear_output(wait=True)
     plt.figure(figsize=figsize)
     for label,data in data_dict.items():
         if logarithmic:
             plt.yscale("log")
-        plt.plot(moving_average(data, 50), label=label)
+        plt.plot(moving_average(data, averaging_size=averaging_size), label=label)
     plt.title(title)
     plt.grid(True)
     plt.xlabel('epoch')
@@ -180,7 +181,7 @@ data_generator_train = Data_Generator.Data_Generator(
     keep_existing_cache=load_existing_cache,
     queue_workers=3,
     queue_size=50,
-    color=False,
+    color=True,
     random_image_transformation=random_train_image_transformation)
 
 batch_dataset_test = bds.BatchDataset('./' + test_csv_file, batch_size)
@@ -196,51 +197,35 @@ data_generator_test = Data_Generator.Data_Generator(
     keep_existing_cache=load_existing_cache,
     queue_workers=3,
     queue_size=30,
-    color=False)
+    color=True)
 
 
 # In[20]: create model
 #with strategy.scope():
+#base_model = tf.keras.applications.MobileNetV2(input_shape=(data_generator_train.image_height, data_generator_train.image_width, 1),
+#                                               include_top=False,
+#                                               weights='imagenet')
+
+#base_model = tf.keras.applications.ResNet50()
+base_model = tf.compat.v2.keras.applications.ResNet50(
+    include_top=False,
+    input_shape=(data_generator_train.image_height, data_generator_train.image_width, 3)
+)
+base_model.trainable = True
+
 model = Sequential()
-
-model.add(Convolution2D(24, (5, 5), padding='same',name='conv1_1', input_shape = (
-    data_generator_train.image_height,
-    data_generator_train.image_width,
-    1)))
-model.add(Activation("relu"))
-#model.add(Dropout(0.15))
-model.add(Convolution2D(24, (5, 5), padding='same',name='conv1_2'))
-#model.add(Dropout(0.15))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-#model.add(Dropout(0.15))
-
-#2
-model.add(Convolution2D(50, (5, 5), padding='same',name='conv2_1_1'))
-#model.add(Dropout(0.15))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-#model.add(Dropout(0.15))
-model.add(Convolution2D(50, (5, 5), padding='same',name='conv2_2_2'))
-#model.add(Dropout(0.15))
-model.add(Activation("relu"))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-#model.add(Dropout(0.15))
+model.add(base_model)
 
 #Final decisions
 model.add(Flatten())
 model.add(Activation("relu"))
 model.add(Dense(80))
-#model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(Dense(240))
-#model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(Dense(80))
-#model.add(Dropout(0.15))
 model.add(Activation("relu"))
 model.add(Dense(35))
-#model.add(Dropout(0.15))
 model.add(Activation("relu"))
 
 model.add(Dense(2))
@@ -311,12 +296,12 @@ for i in range(epochs_to_train):
         best_val_loss = validation_loss
         model.save_weights('best_model_weights_{0}'.format(target_type))
         print("New best test loss!")
-        #live_plot(plotData, logarithmic=True)
+        #live_plot(plotData, logarithmic=True, averaging_size=50)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
-        #live_plot(plotData, logarithmic=True)
+        #live_plot(plotData, logarithmic=True, averaging_size=50)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 

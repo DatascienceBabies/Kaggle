@@ -21,7 +21,7 @@ class Data_Generator_Cache:
         height,
         key_length,
         keep_existing_cache=False,
-        image_datatype=np.float16,
+        image_datatype=np.float32,
         start_size=30,
         color=True):
 
