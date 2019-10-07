@@ -1,5 +1,5 @@
 dataset:
-  batch_size: 30
+  batch_size: 10
   image_width: 256
   image_height: 256
   train_samples: 0.96
@@ -19,9 +19,9 @@ model:
   epochs_to_train: 60000
   # Can be <= 1 for a percentage of the full trainset
   # Can be >= 2 for an exact amount
-  items_trained_per_epoch: 300
-  epochs_between_testing: 10
   load_existing_weights: False 
+  items_trained_per_epoch: 10
+  epochs_between_testing: 800
 graph:
   display_train_loss: True
   display_validation_loss: True

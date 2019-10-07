@@ -91,13 +91,28 @@ def live_plot(data_dict, figsize=(15,5), title='', logarithmic = False, averagin
     plt.xlabel('epoch')
     plt.legend(loc='center left') # the plot evolves to the right
 
-    train_min = plotData['train_loss'][np.argmin(plotData['train_loss'])]
-    train_min_x = np.argmin(plotData['train_loss'])
-    plt.text(train_min_x, train_min, "%.2f" % train_min, fontsize=18)
+    ax_label = plt.axes()
 
-    validation_min = plotData['validation_loss'][np.argmin(plotData['validation_loss'])]
-    validation_min_x = np.argmin(plotData['validation_loss'])
-    plt.text(validation_min_x, validation_min, "%.2f" % validation_min, fontsize=18)
+    train_min = data_dict['train_loss'][np.argmin(data_dict['train_loss'])]
+    train_min_x = np.argmin(data_dict['train_loss'])
+    ax_label.text(
+        train_min_x / np.size(data_dict['train_loss']),
+        0.01,
+        "%.4f" % train_min,
+        verticalalignment='bottom', horizontalalignment='left',
+        transform=ax_label.transAxes,
+        color='green', fontsize=15)
+
+    validation_min = data_dict['validation_loss'][np.argmin(data_dict['validation_loss'])]
+    validation_min_x = np.argmin(data_dict['validation_loss'])
+
+    ax_label.text(
+        validation_min_x / np.size(data_dict['validation_loss']),
+        0.01,
+        "%.4f" % validation_min,
+        verticalalignment='bottom', horizontalalignment='left',
+        transform=ax_label.transAxes,
+        color='green', fontsize=15)
 
     plt.show()
 
@@ -196,7 +211,7 @@ data_generator_test = Data_Generator.Data_Generator(
     cache_location=test_cache_file,
     keep_existing_cache=load_existing_cache,
     queue_workers=3,
-    queue_size=30,
+    queue_size=50,
     color=True)
 
 
@@ -250,6 +265,13 @@ if load_existing_weights:
 start = time.time()
 plotData = collections.defaultdict(list)
 
+def validate_model(model, data_generator):
+    validation_loss = 0
+    for i in range(data_generator.__len__()):
+        validation_loss = validation_loss + model.evaluate(data_generator.getitem_tensorflow_2_X(), data_generator.getitem_tensorflow_2_Y(), verbose=0)[0]
+    validation_loss = validation_loss / data_generator.__len__()
+    return validation_loss
+
 # In[21]:
 # Train the model
 epochs_to_train = config['model']['epochs_to_train']
@@ -275,10 +297,7 @@ for i in range(epochs_to_train):
         epochs=1)
 
     if i == 0 or i % epochs_between_testing == 0:
-        validation_loss = 0
-        for i in range(data_generator_test.__len__()):
-            validation_loss = validation_loss + model.evaluate(data_generator_test.getitem_tensorflow_2_X(), data_generator_test.getitem_tensorflow_2_Y(), verbose=0)[0]
-        validation_loss = validation_loss / data_generator_test.__len__()
+        validation_loss = validate_model(model, data_generator_test)
 
     train_accuracy = history.history['acc'][0]
     train_loss = history.history['loss'][0]
@@ -296,12 +315,12 @@ for i in range(epochs_to_train):
         best_val_loss = validation_loss
         model.save_weights('best_model_weights_{0}'.format(target_type))
         print("New best test loss!")
-        #live_plot(plotData, logarithmic=True, averaging_size=50)
+        live_plot(plotData, logarithmic=True, averaging_size=50)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
-        #live_plot(plotData, logarithmic=True, averaging_size=50)
+        live_plot(plotData, logarithmic=True, averaging_size=50)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 

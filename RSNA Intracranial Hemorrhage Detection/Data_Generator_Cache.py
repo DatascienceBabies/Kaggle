@@ -36,7 +36,7 @@ class Data_Generator_Cache:
             self._channels = 1
 
         self._cache_location = cache_location
-        if keep_existing_cache:
+        if keep_existing_cache and os.path.exists(self._cache_location) and os.path.isfile(self._cache_location):
             print('##### Warning, an existing data cache ' + self._cache_location + ' is being used #####')
             # Check the contents of the file and cache the key - index
             print('Initialization data cache ' + self._cache_location)
