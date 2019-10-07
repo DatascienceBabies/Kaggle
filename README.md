@@ -38,3 +38,11 @@ pip install tensorflow-gpu==2.0.0-rc1
 conda install -c anaconda numpy
 
 conda install -c anaconda scikit-learn
+
+conda install -c conda-forge imbalanced-learn
+
+conda install -c conda-forge git-lfs
+
+git lfs install
+
+git lfs track "*.dlm"
