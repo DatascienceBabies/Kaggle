@@ -1,7 +1,6 @@
 from skimage.io import imread
 from skimage.transform import resize
 import numpy as np
-import BatchDataset as bds
 from tensorflow.python.keras.utils import Sequence
 import pydicom as dicom
 import os
