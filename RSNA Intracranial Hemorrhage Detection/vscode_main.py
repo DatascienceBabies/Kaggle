@@ -256,11 +256,11 @@ filepath="weights.{0}.best.hdf5".format(target_type)
 checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
-model.save('model_{0}'.format(target_type))
+model.save('model_{0}.dlm'.format(target_type))
 
 load_existing_weights = config['model']['load_existing_weights']
 if load_existing_weights:
-    model.load_weights('best_model_weights_{0}'.format(target_type))
+    model.load_weights('best_model_weights_{0}.dlm'.format(target_type))
 
 start = time.time()
 plotData = collections.defaultdict(list)
@@ -313,7 +313,7 @@ for i in range(epochs_to_train):
 
     if best_val_loss > validation_loss:
         best_val_loss = validation_loss
-        model.save_weights('best_model_weights_{0}'.format(target_type))
+        model.save_weights('best_model_weights_{0}.dlm'.format(target_type))
         print("New best test loss!")
         live_plot(plotData, logarithmic=True, averaging_size=50)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
