@@ -42,6 +42,11 @@ from matplotlib import pyplot as plt
 import yaml
 import tensorflow as tf
 import json
+import logging
+
+
+#%%
+logging.basicConfig(filename='loggOutput.log',level=logging.DEBUG)
 
 
 #%% Open the configuration file
@@ -303,11 +308,20 @@ validation_loss = 0
 for i in range(epochs_to_train):
     steps_per_epoch_size = math.floor(items_trained_per_epoch / batch_size)
 
-    history = model.fit(
-        x=data_generator_train.getitem_tensorflow_2_X(),
-        y=data_generator_train.getitem_tensorflow_2_Y(),
+#    history = model.fit(
+#        x=data_generator_train.getitem_tensorflow_2_X(),
+#        y=data_generator_train.getitem_tensorflow_2_Y(),
+#        steps_per_epoch=steps_per_epoch_size,
+#        epochs=1)
+
+    history = model.fit_generator(
+        generator=data_generator_train,
         steps_per_epoch=steps_per_epoch_size,
-        epochs=1)
+        epochs=1,
+        verbose=1,
+        use_multiprocessing=False,
+        workers=0,
+        max_queue_size=32)
 
     if i == 0 or i % epochs_between_testing == 0:
         validation_loss = validate_model(model, data_generator_test)

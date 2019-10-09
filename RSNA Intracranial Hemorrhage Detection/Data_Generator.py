@@ -23,6 +23,7 @@ import time
 import random
 from Data_Generator_Cache import Data_Generator_Cache
 import Image_Transformer
+import logging
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
@@ -256,8 +257,9 @@ class Data_Generator(Sequence):
 
                 X = images_data
                 Y = np.eye(2)[dataset_chunk.dataset[self.target_type].values]
+                ID = dataset_chunk.dataset['ID'].values
 
-                self.batch_queue.put((X, Y))
+                self.batch_queue.put((X, Y, ID))
             except Exception as e:
                 print('Failed to queue image with ID ' + row[1]['ID'] + ' with exception ' + str(e))
                 os._exit(1)
@@ -280,6 +282,7 @@ class Data_Generator(Sequence):
             item = self.batch_queue.get(block=True)
         X = item[0]
         Y = item[1]
+        ID = item[2]
 
         if self.output_test_images:
             self._store_debug_picture(X, Y)

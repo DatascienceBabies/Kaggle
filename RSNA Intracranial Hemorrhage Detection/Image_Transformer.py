@@ -5,10 +5,6 @@ import logging
 import math
 
 class Image_Transformer():
-
-    def __init__(self):
-        logging.basicConfig(filename='loggOutput.log',level=logging.DEBUG)
-
     def _rotate_image(self, image, angle):
         image_center = tuple(np.array(image.shape[1::-1]) / 2)
         rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
