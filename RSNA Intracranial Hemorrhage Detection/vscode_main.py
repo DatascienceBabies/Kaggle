@@ -130,35 +130,44 @@ def live_image(image):
 
 
 #%%
-def create_specialized_csv(target_type, train_samples, test_samples, keep_existing_cache):
-    train_csv_file = target_type + '_train_' + str(train_samples) + '.csv'
-    test_csv_file = target_type + '_test_' + str(test_samples) + '.csv'
+def create_specialized_csv(target_type, train_samples, test_samples, keep_existing_cache, data_folder='./data', use_complete_dataset=True):
+    train_csv_file = data_folder + '/' + target_type + '_train_' + str(train_samples) + '.csv'
+    test_csv_file = data_folder + '/' + target_type + '_test_' + str(test_samples) + '.csv'
 
     if keep_existing_cache and os.path.isfile(train_csv_file) and os.path.isfile(test_csv_file):
         # If csv files already exist, then keep them
         # TODO: Check content size of files to make sure we have the same amount of samples
         return train_csv_file, test_csv_file
 
-    ds = pd.read_csv('stage_1_train_nice.csv')        
+    ds = pd.read_csv('stage_1_train_nice.csv')
+    if test_samples <= 1:
+        test_samples = math.floor(ds[ds[target_type] == 1].shape[0] * test_samples)
 
-    if train_samples + test_samples <= 1:
-        total_examples = ds[ds[target_type] == 1].shape[0]
-        train_samples = math.floor(total_examples * train_samples)
-        test_samples = math.floor(total_examples * test_samples)
-    
-    dataset = ds[ds[target_type] == 1].sample(train_samples)
-    ds = ds.drop(dataset.index)
-    none_ds = ds[ds['any'] == 0].sample(train_samples)
-    ds = ds.drop(none_ds.index)
-    epidural_train_ds = pd.concat([dataset, none_ds]).sample(frac=1)
-    epidural_train_ds.to_csv(train_csv_file, index=None, header=True)
+    if train_samples <= 1:
+        if use_complete_dataset:
+            # Use the complete dataset. Copy the dataset which is smaller
+            if ds[ds[target_type] != 1].shape[0] > ds[ds[target_type] == 1].shape[0]:
+                total_examples = ds[ds[target_type] != 1].shape[0]
+            else:
+                total_examples = ds[ds[target_type] == 1].shape[0]
+            train_samples = math.floor(total_examples - test_samples)
+        else:
+            total_examples = ds[ds[target_type] == 1].shape[0]
+            train_samples = math.floor(total_examples * train_samples)
 
     dataset = ds[ds[target_type] == 1].sample(test_samples)
     ds = ds.drop(dataset.index)
-    none_ds = ds[ds['any'] == 0].sample(test_samples)
+    none_ds = ds[ds[target_type] == 0].sample(test_samples)
     ds = ds.drop(none_ds.index)
-    epidural_test_ds = pd.concat([dataset, none_ds]).sample(frac=1)
-    epidural_test_ds.to_csv(test_csv_file, index=None, header=True)
+    test_ds = pd.concat([dataset, none_ds]).sample(frac=1)
+    test_ds.to_csv(test_csv_file, index=None, header=True)        
+    
+    dataset = ds[ds[target_type] == 1].sample(train_samples, replace=True)
+    ds = ds.drop(dataset.index)
+    none_ds = ds[ds[target_type] == 0].sample(train_samples, replace=True)
+    ds = ds.drop(none_ds.index)
+    train_ds = pd.concat([dataset, none_ds]).sample(frac=1)
+    train_ds.to_csv(train_csv_file, index=None, header=True)
 
     return train_csv_file, test_csv_file
 
@@ -166,6 +175,7 @@ def create_specialized_csv(target_type, train_samples, test_samples, keep_existi
 
 
 #%% Define dataset
+data_folder = './data/'
 batch_size = config['dataset']['batch_size']
 image_width = config['dataset']['image_width']
 image_height = config['dataset']['image_height']
@@ -183,7 +193,7 @@ use_cache_test = config['dataset']['use_cache_test']
 output_test_images = config['dataset']['output_test_images']
 random_train_image_transformation = config['dataset']['random_train_image_transformation']
 
-train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples, load_existing_cache)
+train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples, load_existing_cache, data_folder)
 
 batch_dataset_train = bds.BatchDataset('./' + train_csv_file, batch_size)
 data_generator_train = Data_Generator.Data_Generator(
@@ -255,15 +265,15 @@ model.compile(loss='binary_crossentropy', optimizer=optimizer,metrics=['accuracy
 print(model.summary())
 
 # checkpoint
-filepath="weights.{0}.best.hdf5".format(target_type)
+filepath=data_folder + "weights.{0}.best.hdf5".format(target_type)
 checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
-model.save('model_{0}.dlm'.format(target_type))
+model.save(data_folder + 'model_{0}.dlm'.format(target_type))
 
 load_existing_weights = config['model']['load_existing_weights']
 if load_existing_weights:
-    model.load_weights('best_model_weights_{0}.dlm'.format(target_type))
+    model.load_weights(data_folder + 'best_model_weights_{0}.dlm'.format(target_type))
 
 start = time.time()
 plotData = collections.defaultdict(list)
@@ -316,7 +326,7 @@ for i in range(epochs_to_train):
 
     if best_val_loss > validation_loss:
         best_val_loss = validation_loss
-        model.save_weights('best_model_weights_{0}.dlm'.format(target_type))
+        model.save_weights(data_folder + 'best_model_weights_{0}.dlm'.format(target_type))
         print("New best test loss!")
         live_plot(plotData, logarithmic=True, averaging_size=50)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))

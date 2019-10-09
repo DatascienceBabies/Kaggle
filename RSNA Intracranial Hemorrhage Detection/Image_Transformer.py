@@ -78,13 +78,13 @@ class Image_Transformer():
     def random_transforms(self, image):
         image_safe = np.copy(image)
         try:
-            if random.uniform(0, 1) > 0.2:
+            if random.uniform(0, 1) > 0.3:
                 image = self._rotate_image(image, random.uniform(-20, +20))
-            if random.uniform(0, 1) > 0.2:
+            if random.uniform(0, 1) > 0.3:
                 image = self._flip(image, random.randint(-1, 1))
-            if random.uniform(0, 1) > 0.2:
+            if random.uniform(0, 1) > 0.3:
                 image = self._noise(image, random.randint(0, 3))
-            if random.uniform(0, 1) > 1:
+            if random.uniform(0, 1) > 1.0:
                 image = self._stretch(image, width_ratio=random.uniform(0, 0.2), height_ratio=random.uniform(0, 0.2))
         except Exception as e:
             print('Image_Transformer failed with exception: ' + str(e))
