@@ -99,20 +99,23 @@ def live_plot(data_dict, figsize=(15,5), title='', logarithmic = False, averagin
         train_min_x / np.size(data_dict['train_loss']),
         0.01,
         "%.4f" % train_min,
-        verticalalignment='bottom', horizontalalignment='left',
+        verticalalignment='bottom',
+        horizontalalignment='left',
         transform=ax_label.transAxes,
-        color='green', fontsize=15)
+        color='blue',
+        fontsize=15)
 
     validation_min = data_dict['validation_loss'][np.argmin(data_dict['validation_loss'])]
     validation_min_x = np.argmin(data_dict['validation_loss'])
 
     ax_label.text(
         validation_min_x / np.size(data_dict['validation_loss']),
-        0.01,
+        0.15,
         "%.4f" % validation_min,
-        verticalalignment='bottom', horizontalalignment='left',
+        verticalalignment='bottom',
+        horizontalalignment='left',
         transform=ax_label.transAxes,
-        color='green', fontsize=15)
+        color='yellow', fontsize=15)
 
     plt.show()
 

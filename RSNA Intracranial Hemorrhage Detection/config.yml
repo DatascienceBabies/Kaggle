@@ -1,14 +1,14 @@
 dataset:
-  batch_size: 10
+  batch_size: 4
   image_width: 256
   image_height: 256
-  train_samples: 0.96
-  test_samples: 0.04
-  target_type: 'intraventricular'
+  train_samples: 0.90
+  test_samples: 0.1
+  target_type: 'epidural'
   use_cache_train: True
   use_cache_test: True
   # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
-  load_existing_cache: False
+  load_existing_cache: True
   train_cache_file: './data/cache_train.dat'
   test_cache_file: './data/cache_test.dat'
   train_base_image_path: './data/stage_1_train_images'
@@ -16,12 +16,12 @@ dataset:
   output_test_images: True
   random_train_image_transformation: True
 model:
-  epochs_to_train: 60000
+  epochs_to_train: 600000
   # Can be <= 1 for a percentage of the full trainset
   # Can be >= 2 for an exact amount
   load_existing_weights: False 
-  items_trained_per_epoch: 10
-  epochs_between_testing: 800
+  items_trained_per_epoch: 100
+  epochs_between_testing: 100
 graph:
   display_train_loss: True
   display_validation_loss: True
