@@ -14,6 +14,7 @@ class Data_Generator_Cache:
     _cache_mutex = None
     _color = None
     _channels = None
+    _current_location = None
 
     def __init__(
         self,
@@ -43,6 +44,7 @@ class Data_Generator_Cache:
             print('Initialization data cache ' + self._cache_location)
             start_time = time.time()
             with h5py.File(cache_location, 'r') as file:
+                #self._current_location = file['current_location']
                 total_length = file['key'].shape[0]
                 for key in file['key']:
                     if time.time() - start_time >= 1:
@@ -56,6 +58,7 @@ class Data_Generator_Cache:
             with h5py.File(cache_location, 'w') as file:
                 file.create_dataset("images", shape=(start_size, height, width, self._channels), maxshape=(None, height, width, self._channels), dtype=image_datatype, compression="gzip", shuffle=True)
                 file.create_dataset("key", shape=(start_size, 1), maxshape=(None, 1), dtype=h5py.special_dtype(vlen=str))
+                file.create_dataset("current_location", shape=(1, 1), maxshape=(1, 1), dtype=np.int32)
 
 
     def add_to_cache(self, image, key):
@@ -68,6 +71,7 @@ class Data_Generator_Cache:
 
                 file['images'][self._last_index_position] = image
                 file['key'][self._last_index_position] = key
+                file['current_location'][0] = self._last_index_position
                 self._key_index_dictionary[key] = self._last_index_position
                 self._last_index_position = self._last_index_position + 1
         finally:
