@@ -43,10 +43,11 @@ import yaml
 import tensorflow as tf
 import json
 import logging
+from Data_Generator_Cache import Data_Generator_Cache
 
 
 #%%
-logging.basicConfig(filename='loggOutput.log',level=logging.DEBUG)
+logging.basicConfig(filename='./data/logOutput.log',level=logging.DEBUG)
 
 
 #%% Open the configuration file
@@ -189,12 +190,10 @@ test_samples = config['dataset']['test_samples']
 target_type = config['dataset']['target_type']
 # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
 load_existing_cache = config['dataset']['load_existing_cache']
-train_cache_file = config['dataset']['train_cache_file']
-test_cache_file = config['dataset']['test_cache_file']
+cache_file = config['dataset']['cache_file']
 train_base_image_path = config['dataset']['train_base_image_path']
 test_base_image_path = config['dataset']['test_base_image_path']
-use_cache_train = config['dataset']['use_cache_train']
-use_cache_test = config['dataset']['use_cache_test']
+use_cache = config['dataset']['use_cache']
 output_test_images = config['dataset']['output_test_images']
 random_train_image_transformation = config['dataset']['random_train_image_transformation']
 
@@ -209,9 +208,6 @@ data_generator_train = Data_Generator.Data_Generator(
     train_base_image_path,
     include_resized_mini_images=True,
     output_test_images=output_test_images,
-    cache_data=use_cache_train,
-    cache_location=train_cache_file,
-    keep_existing_cache=load_existing_cache,
     queue_workers=3,
     queue_size=50,
     color=True,
@@ -225,15 +221,28 @@ data_generator_test = Data_Generator.Data_Generator(
     image_height,
     test_base_image_path,
     include_resized_mini_images=True,
-    cache_data=use_cache_test,
-    cache_location=test_cache_file,
-    keep_existing_cache=load_existing_cache,
     queue_workers=3,
     queue_size=50,
-    color=True)
+    color=True,
+    random_image_transformation=random_train_image_transformation)
+
+if use_cache:
+    data_generator_cache = Data_Generator_Cache(
+        cache_file,
+        data_generator_train.image_width,
+        data_generator_train.image_height,
+        keep_existing_cache=load_existing_cache,
+        key_length=12,
+        color=True,
+        image_datatype=np.int16
+    )
+    data_generator_train.set_data_generator_cache(data_generator_cache)
+    data_generator_test.set_data_generator_cache(data_generator_cache)
 
 
 # In[20]: create model
+base_model_trainable = config['model']['base_model_trainable']
+
 #with strategy.scope():
 #base_model = tf.keras.applications.MobileNetV2(input_shape=(data_generator_train.image_height, data_generator_train.image_width, 1),
 #                                               include_top=False,
@@ -244,7 +253,7 @@ base_model = tf.compat.v2.keras.applications.ResNet50(
     include_top=False,
     input_shape=(data_generator_train.image_height, data_generator_train.image_width, 3)
 )
-base_model.trainable = True
+base_model.trainable = base_model_trainable
 
 model = Sequential()
 model.add(base_model)
@@ -264,7 +273,7 @@ model.add(Activation("relu"))
 model.add(Dense(2))
 model.add(Activation('softmax'))
 
-optimizer = Adam(lr=0.000010)
+optimizer = Adam(lr=0.000100)
 model.compile(loss='binary_crossentropy', optimizer=optimizer,metrics=['accuracy'])
 
 print(model.summary())

@@ -48,7 +48,6 @@ class Data_Generator(Sequence):
     target_type = None
     random_image_transformation = None
     image_transformer = None
-    image_datatype = None
     
 
     def open_dcm_image(self, ID):
@@ -130,14 +129,10 @@ class Data_Generator(Sequence):
         zip_path=None,
         output_test_images=False,
         include_resized_mini_images=False,
-        cache_data=False,
-        cache_location=None,
-        keep_existing_cache=False,
         queue_workers=1,
         queue_size=30,
         color=True,
-        random_image_transformation=False,
-        image_datatype=np.int16):
+        random_image_transformation=False):
         
         self.queue_size = queue_size
         self.batch_dataset = batch_dataset
@@ -152,12 +147,10 @@ class Data_Generator(Sequence):
         self.include_resized_mini_images = include_resized_mini_images
         self.original_width = image_width
         self.original_height = image_height
-        self.cache_data = cache_data
         self.target_type = target_type
         self.queue_workers = queue_workers
         self.color = color
         self.random_image_transformation = random_image_transformation
-        self.image_datatype = image_datatype
 
         if (self.random_image_transformation):
             self.image_transformer = Image_Transformer.Image_Transformer()
@@ -172,20 +165,13 @@ class Data_Generator(Sequence):
         # We need categories defined, as we cannot trust the auto-category with batch data
         self.one_hot_encoder = OneHotEncoder(categories=[[0, 1]], handle_unknown='ignore')
 
-        if self.cache_data:
-            self.data_generator_cache = Data_Generator_Cache(
-                cache_location,
-                self.image_width,
-                self.image_height,
-                keep_existing_cache=keep_existing_cache,
-                key_length=12,
-                color=self.color,
-                image_datatype=self.image_datatype
-            )
-
         for _ in range(self.queue_workers):
             worker = threading.Thread(target=self._worker_queue_data, args=())
             worker.start()
+
+    def set_data_generator_cache(self, data_generator_cache):
+        self.cache_data = True
+        self.data_generator_cache = data_generator_cache
 
     def _resize_image(self, image, width, height):
         width = int(width)
