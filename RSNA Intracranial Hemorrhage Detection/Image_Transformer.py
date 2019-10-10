@@ -72,6 +72,9 @@ class Image_Transformer():
             return noisy.reshape(image.shape)
     
     def random_transforms(self, image):
+        # TODO: Can we figure out how to do transformations on the original datatype?
+        old_dtype = image.dtype
+        image = np.float32(image)
         image_safe = np.copy(image)
         try:
             if random.uniform(0, 1) > 0.3:
@@ -87,4 +90,4 @@ class Image_Transformer():
             logging.error('Image_Transformer failed with exception: ' + str(e))
             image = image_safe
 
-        return image
+        return image.astype(old_dtype.name)

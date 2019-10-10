@@ -48,6 +48,7 @@ class Data_Generator(Sequence):
     target_type = None
     random_image_transformation = None
     image_transformer = None
+    image_datatype = None
     
 
     def open_dcm_image(self, ID):
@@ -135,7 +136,8 @@ class Data_Generator(Sequence):
         queue_workers=1,
         queue_size=30,
         color=True,
-        random_image_transformation=False):
+        random_image_transformation=False,
+        image_datatype=np.int16):
         
         self.queue_size = queue_size
         self.batch_dataset = batch_dataset
@@ -155,6 +157,7 @@ class Data_Generator(Sequence):
         self.queue_workers = queue_workers
         self.color = color
         self.random_image_transformation = random_image_transformation
+        self.image_datatype = image_datatype
 
         if (self.random_image_transformation):
             self.image_transformer = Image_Transformer.Image_Transformer()
@@ -176,7 +179,8 @@ class Data_Generator(Sequence):
                 self.image_height,
                 keep_existing_cache=keep_existing_cache,
                 key_length=12,
-                color=self.color
+                color=self.color,
+                image_datatype=self.image_datatype
             )
 
         for _ in range(self.queue_workers):
@@ -244,10 +248,7 @@ class Data_Generator(Sequence):
                             image = self._add_smaller_images(image)
 
                         if self.cache_data:
-                            self.data_generator_cache.add_to_cache(image, row[1]['ID'])
-
-                    # TODO: This is necessary for the image transformations. I guess we can leave it like this, even if it eats up RAM?
-                    image = np.float32(image)
+                            self.data_generator_cache.add_to_cache(image, row[1]['ID'])                    
 
                     if self.random_image_transformation:
                         image = self.image_transformer.random_transforms(image)

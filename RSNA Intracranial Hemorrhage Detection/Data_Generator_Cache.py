@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 from threading import Lock
 import time
+import scipy
 
 class Data_Generator_Cache:
     _cache_location = None
@@ -53,7 +54,7 @@ class Data_Generator_Cache:
             
         else:
             with h5py.File(cache_location, 'w') as file:
-                file.create_dataset("images", shape=(start_size, height, width, self._channels), maxshape=(None, height, width, self._channels), dtype=image_datatype)
+                file.create_dataset("images", shape=(start_size, height, width, self._channels), maxshape=(None, height, width, self._channels), dtype=image_datatype, compression="gzip", shuffle=True)
                 file.create_dataset("key", shape=(start_size, 1), maxshape=(None, 1), dtype=h5py.special_dtype(vlen=str))
 
 
