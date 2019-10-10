@@ -41,6 +41,8 @@ conda install -c anaconda scikit-learn
 
 conda install -c conda-forge imbalanced-learn
 
+conda install -c anaconda pillow
+
 conda install -c conda-forge git-lfs
 
 git lfs install
