@@ -1,16 +1,14 @@
 dataset:
-  batch_size: 20
+  batch_size: 15
   image_width: 256
   image_height: 256
-  train_samples: 0.90
-  test_samples: 0.10
+  train_samples: 0.9
+  test_samples: 0.1
   target_type: 'subarachnoid'
-  use_cache_train: True
-  use_cache_test: True
+  use_cache: True
   # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
   load_existing_cache: False
-  train_cache_file: './data/cache_train.dat'
-  test_cache_file: './data/cache_test.dat'
+  cache_file: './data/cache.dat'
   train_base_image_path: './data/stage_1_train_images'
   test_base_image_path: './data/stage_1_train_images'
   output_test_images: True
@@ -19,9 +17,10 @@ model:
   epochs_to_train: 600000
   # Can be <= 1 for a percentage of the full trainset
   # Can be >= 2 for an exact amount
-  load_existing_weights: False 
-  items_trained_per_epoch: 320
-  epochs_between_testing: 50
+  load_existing_weights: True 
+  items_trained_per_epoch: 300
+  epochs_between_testing: 100
+  base_model_trainable: True
 graph:
   display_train_loss: True
   display_validation_loss: True
