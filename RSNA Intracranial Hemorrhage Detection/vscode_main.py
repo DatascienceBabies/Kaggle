@@ -239,6 +239,9 @@ if use_cache:
     data_generator_train.set_data_generator_cache(data_generator_cache)
     data_generator_test.set_data_generator_cache(data_generator_cache)
 
+data_generator_train.start_batcher()
+data_generator_test.start_batcher()
+
 
 # In[20]: create model
 base_model_trainable = config['model']['base_model_trainable']

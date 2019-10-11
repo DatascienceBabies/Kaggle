@@ -45,3 +45,8 @@ class BatchDataset:
 
     def batch_amount(self):
         return int(np.ceil(self._dataset_lines / float(self._chunk_size)))
+
+    def set_next_batch(self, batch_index):
+        self._chunks_read = batch_index
+        self._df_chunk = pd.read_csv(self._csv_file_path, chunksize=self._chunk_size)
+        self._df_chunk.read(batch_index * self._chunk_size)

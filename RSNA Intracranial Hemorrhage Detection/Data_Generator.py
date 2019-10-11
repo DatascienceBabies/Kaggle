@@ -24,6 +24,7 @@ import random
 from Data_Generator_Cache import Data_Generator_Cache
 import Image_Transformer
 import logging
+import random
 
 # This data generator is hardwired for Y being images
 class Data_Generator(Sequence):
@@ -165,13 +166,29 @@ class Data_Generator(Sequence):
         # We need categories defined, as we cannot trust the auto-category with batch data
         self.one_hot_encoder = OneHotEncoder(categories=[[0, 1]], handle_unknown='ignore')
 
-        for _ in range(self.queue_workers):
-            worker = threading.Thread(target=self._worker_queue_data, args=())
-            worker.start()
-
     def set_data_generator_cache(self, data_generator_cache):
         self.cache_data = True
         self.data_generator_cache = data_generator_cache
+        # TODO: Change this random start location to the actual next position based on previous image loaded from cache
+        self.batch_dataset.set_next_batch(random.randint(0, self.batch_dataset.batch_amount()))
+
+        # Find the next batch to train on
+        #self.batch_dataset_mutex.acquire()
+        #last_fetched_image_id = self.data_generator_cache.get_id_of_last_fetched_image()
+        #keep_searching = True
+        #while keep_searching:
+        #    dataset_chunk = self.batch_dataset.get_next_chunk()
+        #    for row in dataset_chunk.dataset.iterrows():
+        #        if row[1]['ID'] == last_fetched_image_id:
+        #            keep_searching = False
+        #            break
+            
+        #self.batch_dataset_mutex.release()
+
+    def start_batcher(self):
+        for _ in range(self.queue_workers):
+            worker = threading.Thread(target=self._worker_queue_data, args=())
+            worker.start()
 
     def _resize_image(self, image, width, height):
         width = int(width)
