@@ -235,10 +235,8 @@ class Data_Generator(Sequence):
                     images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 1))
                 index = 0
                 for row in dataset_chunk.dataset.iterrows():
-                    image = None
-                    if self.cache_data and self.data_generator_cache.key_exists(row[1]['ID']):
-                        image = self.data_generator_cache.get_image(row[1]['ID'])
-                    else:
+                    image = self.data_generator_cache.get_image(row[1]['ID'])
+                    if image is None:
                         # TODO: Send in width and height as constructor parameters
                         if self.archive != None:
                             image = self.open_dcm_image_from_zip(row[1]['ID'])
