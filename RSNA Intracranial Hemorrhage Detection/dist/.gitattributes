@@ -1,0 +1,2 @@
+*.dlm filter=lfs diff=lfs merge=lfs -text
+*.dlm.* filter=lfs diff=lfs merge=lfs -text
