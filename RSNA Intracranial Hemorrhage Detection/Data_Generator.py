@@ -166,11 +166,12 @@ class Data_Generator(Sequence):
         # We need categories defined, as we cannot trust the auto-category with batch data
         self.one_hot_encoder = OneHotEncoder(categories=[[0, 1]], handle_unknown='ignore')
 
+        self.batch_dataset.set_next_batch(random.randint(0, self.batch_dataset.batch_amount()))
+
     def set_data_generator_cache(self, data_generator_cache):
         self.cache_data = True
         self.data_generator_cache = data_generator_cache
-        # TODO: Change this random start location to the actual next position based on previous image loaded from cache
-        self.batch_dataset.set_next_batch(random.randint(0, self.batch_dataset.batch_amount()))
+        # TODO: Change the start location to the actual next position based on previous image loaded from cache
 
         # Find the next batch to train on
         #self.batch_dataset_mutex.acquire()

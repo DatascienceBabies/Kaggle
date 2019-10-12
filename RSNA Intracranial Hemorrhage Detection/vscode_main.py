@@ -190,7 +190,7 @@ test_samples = config['dataset']['test_samples']
 target_type = config['dataset']['target_type']
 # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
 load_existing_cache = config['dataset']['load_existing_cache']
-cache_file = config['dataset']['cache_file']
+cache_location = config['dataset']['cache_location']
 train_base_image_path = config['dataset']['train_base_image_path']
 test_base_image_path = config['dataset']['test_base_image_path']
 use_cache = config['dataset']['use_cache']
@@ -228,13 +228,8 @@ data_generator_test = Data_Generator.Data_Generator(
 
 if use_cache:
     data_generator_cache = Data_Generator_Cache(
-        cache_file,
-        data_generator_train.image_width,
-        data_generator_train.image_height,
+        cache_location,
         keep_existing_cache=load_existing_cache,
-        key_length=12,
-        color=True,
-        image_datatype=np.int16
     )
     data_generator_train.set_data_generator_cache(data_generator_cache)
     data_generator_test.set_data_generator_cache(data_generator_cache)
