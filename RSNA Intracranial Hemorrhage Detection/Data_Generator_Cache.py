@@ -44,15 +44,15 @@ class Data_Generator_Cache:
 
     def get_image(self, key):
         try:
-            path = os.path.join(self._cache_location, key + '.npz')
-            if os.path.exists(path) == False:
-                return None
+            # path = os.path.join(self._cache_location, key + '.npz')
+            # if os.path.exists(path) == False:
+            #     return None
             path = os.path.join(self._cache_location, key + '.npz')
             image = np.load(path)['a']
             self._ctr_images_fetched = self._ctr_images_fetched + 1
 
             if self._output_debug_information and time.time() - self._time_since_last_info > 2:
-                print('Fetched ratio: ' + str(round(self._ctr_images_fetched / (self._ctr_images_fetched + self._ctr_images_saved), 2)) + '. Images saved: ' + str(self._ctr_images_saved) + ". Images fetched from cache: " + str(self._ctr_images_fetched))
+                print('\nFetched ratio: ' + str(round(self._ctr_images_fetched / (self._ctr_images_fetched + self._ctr_images_saved), 2)) + '. Images saved: ' + str(self._ctr_images_saved) + ". Images fetched from cache: " + str(self._ctr_images_fetched))
                 self._time_since_last_info = time.time()
             return image
         except:
