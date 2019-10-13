@@ -8,7 +8,7 @@ dataset:
   use_cache: True
   # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
   load_existing_cache: False
-  cache_file: './data/cache.dat'
+  cache_location: './data/cache/'
   train_base_image_path: './data/stage_1_train_images'
   test_base_image_path: './data/stage_1_train_images'
   output_test_images: True
