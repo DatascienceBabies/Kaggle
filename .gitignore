@@ -6,3 +6,4 @@
 RSNA Intracranial Hemorrhage Detection/config.user.yml
 /RSNA Intracranial Hemorrhage Detection/best_model_weights_*
 /RSNA Intracranial Hemorrhage Detection/ModelSaves/*
+/util/__pycache__/*.*
