@@ -152,6 +152,7 @@ class Data_Generator(Sequence):
         self.queue_workers = queue_workers
         self.color = color
         self.random_image_transformation = random_image_transformation
+        self.cache_data = False
 
         if (self.random_image_transformation):
             self.image_transformer = Image_Transformer.Image_Transformer()
@@ -236,7 +237,7 @@ class Data_Generator(Sequence):
                 index = 0
                 for row in dataset_chunk.dataset.iterrows():
                     image = None
-                    if self.cache:
+                    if self.cache_data:
                         image = self.data_generator_cache.get_image(row[1]['ID'])
                     if image is None:
                         # TODO: Send in width and height as constructor parameters
