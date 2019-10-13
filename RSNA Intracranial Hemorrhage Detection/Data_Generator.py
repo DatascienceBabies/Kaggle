@@ -235,7 +235,9 @@ class Data_Generator(Sequence):
                     images_data = np.zeros((dataset_chunk.dataset.shape[0], self.image_height, self.image_width, 1))
                 index = 0
                 for row in dataset_chunk.dataset.iterrows():
-                    image = self.data_generator_cache.get_image(row[1]['ID'])
+                    image = None
+                    if self.cache:
+                        image = self.data_generator_cache.get_image(row[1]['ID'])
                     if image is None:
                         # TODO: Send in width and height as constructor parameters
                         if self.archive != None:
