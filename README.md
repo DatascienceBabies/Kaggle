@@ -45,6 +45,18 @@ conda install -c anaconda pillow
 
 conda install -c anaconda pandas
 
+conda install -c conda-forge matplotlib
+
+conda install -c anaconda ipython
+
+conda install -c anaconda scikit-image
+
+conda install -c conda-forge pydicom
+
+conda install -c conda-forge opencv
+
+pip install pyyaml
+
 conda install -c conda-forge git-lfs
 
 git lfs install
