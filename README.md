@@ -43,6 +43,8 @@ conda install -c conda-forge imbalanced-learn
 
 conda install -c anaconda pillow
 
+conda install -c anaconda pandas
+
 conda install -c conda-forge git-lfs
 
 git lfs install
