@@ -5,16 +5,6 @@
 #%matplotlib inline
 #import tensorflow as tf
 import tensorflow as tf
-from tensorflow.python.keras.models import Sequential
-from tensorflow.python.keras.optimizers import Adam
-from tensorflow.python.keras.utils import plot_model
-from tensorflow.python.keras.models import Model
-from tensorflow.python.keras.applications import MobileNet
-from tensorflow.python.keras import optimizers
-from tensorflow.python.keras.callbacks import ModelCheckpoint
-from tensorflow.python.keras.layers import BatchNormalizationV2, Dense, Flatten, Convolution2D, GlobalAveragePooling2D, Input, AveragePooling2D, Activation, Dropout
-from tensorflow.python.keras.layers.convolutional import Conv2D
-from tensorflow.python.keras.layers.pooling import MaxPooling2D
 import keras.metrics
 import csv
 import numpy as np
@@ -46,8 +36,6 @@ import logging
 from Data_Generator_Cache import Data_Generator_Cache
 
 
-#%%
-logging.basicConfig(filename='./data/logOutput.log',level=logging.DEBUG)
 
 
 #%% Open the configuration file
@@ -61,6 +49,14 @@ with open("config.yml", 'r') as ymlfile:
                 for key in user_yaml[area]:
                     print("User override found for: {0}".format(key))
                     config[area][key] = user_yaml[area][key]
+
+data_location = config['dataset']['data_location']
+
+
+
+
+#%%
+logging.basicConfig(filename=os.path.join(data_location, 'logOutput.log'),level=logging.DEBUG)
 
 
 #%% Configure the network training
@@ -181,7 +177,6 @@ def create_specialized_csv(target_type, train_samples, test_samples, keep_existi
 
 
 #%% Define dataset
-data_folder = './data/'
 batch_size = config['dataset']['batch_size']
 image_width = config['dataset']['image_width']
 image_height = config['dataset']['image_height']
@@ -197,7 +192,7 @@ use_cache = config['dataset']['use_cache']
 output_test_images = config['dataset']['output_test_images']
 random_train_image_transformation = config['dataset']['random_train_image_transformation']
 
-train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples, load_existing_cache, data_folder)
+train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples, load_existing_cache, data_location)
 
 batch_dataset_train = bds.BatchDataset('./' + train_csv_file, batch_size)
 data_generator_train = Data_Generator.Data_Generator(
@@ -224,7 +219,7 @@ data_generator_test = Data_Generator.Data_Generator(
     queue_workers=3,
     queue_size=50,
     color=True,
-    random_image_transformation=random_train_image_transformation)
+    random_image_transformation=False)
 
 if use_cache:
     data_generator_cache = Data_Generator_Cache(
@@ -277,15 +272,15 @@ model.compile(loss='binary_crossentropy', optimizer=optimizer,metrics=['accuracy
 print(model.summary())
 
 # checkpoint
-filepath=data_folder + "weights.{0}.best.hdf5".format(target_type)
-checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+filepath=data_location + "weights.{0}.best.hdf5".format(target_type)
+# checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
-model.save(data_folder + 'model_{0}.dlm'.format(target_type))
+model.save(data_location + 'model_{0}.dlm'.format(target_type))
 
 load_existing_weights = config['model']['load_existing_weights']
 if load_existing_weights:
-    model.load_weights(data_folder + 'best_model_weights_{0}.dlm'.format(target_type))
+    model.load_weights(data_location + 'best_model_weights_{0}.dlm'.format(target_type))
 
 start = time.time()
 plotData = collections.defaultdict(list)
@@ -315,12 +310,6 @@ validation_loss = 0
 for i in range(epochs_to_train):
     steps_per_epoch_size = math.floor(items_trained_per_epoch / batch_size)
 
-#    history = model.fit(
-#        x=data_generator_train.getitem_tensorflow_2_X(),
-#        y=data_generator_train.getitem_tensorflow_2_Y(),
-#        steps_per_epoch=steps_per_epoch_size,
-#        epochs=1)
-
     history = model.fit_generator(
         generator=data_generator_train,
         steps_per_epoch=steps_per_epoch_size,
@@ -347,14 +336,14 @@ for i in range(epochs_to_train):
 
     if best_val_loss > validation_loss:
         best_val_loss = validation_loss
-        model.save_weights(data_folder + 'best_model_weights_{0}.dlm'.format(target_type))
+        model.save_weights(data_location + 'best_model_weights_{0}.dlm'.format(target_type))
         print("New best test loss!")
-        live_plot(plotData, logarithmic=True, averaging_size=50)
+        live_plot(plotData, logarithmic=True, averaging_size=1)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
-        live_plot(plotData, logarithmic=True, averaging_size=50)
+        live_plot(plotData, logarithmic=True, averaging_size=1)
         print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 
