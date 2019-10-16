@@ -11,14 +11,13 @@ dataset:
   cache_location: './data/cache/'
   train_base_image_path: './data/stage_1_train_images'
   test_base_image_path: './data/stage_1_train_images'
-  data_location: './data/'
   output_test_images: True
   random_train_image_transformation: True
 model:
   epochs_to_train: 600000
   # Can be <= 1 for a percentage of the full trainset
   # Can be >= 2 for an exact amount
-  load_existing_weights: False 
+  load_existing_weights: True 
   items_trained_per_epoch: 300
   epochs_between_testing: 100
   base_model_trainable: True

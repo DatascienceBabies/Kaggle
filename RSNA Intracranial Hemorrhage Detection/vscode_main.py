@@ -5,7 +5,14 @@
 #%matplotlib inline
 #import tensorflow as tf
 import tensorflow as tf
-import keras.metrics
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import plot_model
+from tensorflow.keras.models import Model
+from tensorflow.keras.applications import MobileNet
+from tensorflow.keras import optimizers
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.layers import Dense, Flatten, Convolution2D, GlobalAveragePooling2D, Input, AveragePooling2D, Activation, Dropout
 import csv
 import numpy as np
 import random
@@ -65,12 +72,12 @@ task_type = config['distributed_training']['task_type']
 task_index = config['distributed_training']['task_index']
 total_worker_count = config['distributed_training']['total_worker_count']
 
-os.environ['TF_CONFIG'] = json.dumps({
-    'cluster': {
-        task_type: [address]
-    },
-    'task': {'type': task_type, 'index': task_index}
-})
+#os.environ['TF_CONFIG'] = json.dumps({
+#    'cluster': {
+#        task_type: [address]
+#    },
+#    'task': {'type': task_type, 'index': task_index}
+#})
 
 # strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
 
@@ -194,7 +201,7 @@ random_train_image_transformation = config['dataset']['random_train_image_transf
 
 train_csv_file, test_csv_file = create_specialized_csv(target_type, train_samples, test_samples, load_existing_cache, data_location)
 
-batch_dataset_train = bds.BatchDataset('./' + train_csv_file, batch_size)
+batch_dataset_train = bds.BatchDataset(train_csv_file, batch_size)
 data_generator_train = Data_Generator.Data_Generator(
     target_type,
     batch_dataset_train,
@@ -207,8 +214,9 @@ data_generator_train = Data_Generator.Data_Generator(
     queue_size=50,
     color=True,
     random_image_transformation=random_train_image_transformation)
+    #zip_path='./data/stage_1_train_images/rsna-intracranial-hemorrhage-detection.zip')
 
-batch_dataset_test = bds.BatchDataset('./' + test_csv_file, batch_size)
+batch_dataset_test = bds.BatchDataset(test_csv_file, batch_size)
 data_generator_test = Data_Generator.Data_Generator(
     target_type,
     batch_dataset_test,
@@ -220,8 +228,10 @@ data_generator_test = Data_Generator.Data_Generator(
     queue_size=50,
     color=True,
     random_image_transformation=False)
+    #zip_path='./data/stage_1_train_images/rsna-intracranial-hemorrhage-detection.zip')
 
 if use_cache:
+    print("Setting cache")
     data_generator_cache = Data_Generator_Cache(
         cache_location,
         keep_existing_cache=load_existing_cache,
@@ -277,10 +287,12 @@ filepath=data_location + "weights.{0}.best.hdf5".format(target_type)
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
 model.save(data_location + 'model_{0}.dlm'.format(target_type))
+print('#### Going to save model to: ' + model_path)
+model.save(model_path)
 
 load_existing_weights = config['model']['load_existing_weights']
 if load_existing_weights:
-    model.load_weights(data_location + 'best_model_weights_{0}.dlm'.format(target_type))
+    model.load_weights(model_path)
 
 start = time.time()
 plotData = collections.defaultdict(list)
@@ -320,9 +332,9 @@ for i in range(epochs_to_train):
         max_queue_size=32)
 
     if i == 0 or i % epochs_between_testing == 0:
-        validation_loss = validate_model(model, data_generator_test)
+       validation_loss = validate_model(model, data_generator_test)
 
-    train_accuracy = history.history['acc'][0]
+    #train_accuracy = history.history['acc'][0]
     train_loss = history.history['loss'][0]
     
     if display_train_loss:
@@ -336,15 +348,15 @@ for i in range(epochs_to_train):
 
     if best_val_loss > validation_loss:
         best_val_loss = validation_loss
-        model.save_weights(data_location + 'best_model_weights_{0}.dlm'.format(target_type))
+        model.save_weights(model_path)
         print("New best test loss!")
         live_plot(plotData, logarithmic=True, averaging_size=1)
-        print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
+        #print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
         live_plot(plotData, logarithmic=True, averaging_size=1)
-        print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
+        #print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 
 #%%
