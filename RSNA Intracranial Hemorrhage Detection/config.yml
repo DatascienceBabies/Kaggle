@@ -8,6 +8,7 @@ dataset:
   use_cache: True
   # Warning: Modifications to Data_Generator requires you to remake the cache for it to take effect!
   load_existing_cache: False
+  data_location: './data/'
   cache_location: './data/cache/'
   train_base_image_path: './data/stage_1_train_images'
   test_base_image_path: './data/stage_1_train_images'
@@ -21,6 +22,8 @@ model:
   items_trained_per_epoch: 300
   epochs_between_testing: 100
   base_model_trainable: True
+  tensorboar_log_dir: '.\\data\\tensorboard\\'
+  model_path: './data/'
 graph:
   display_train_loss: True
   display_validation_loss: True

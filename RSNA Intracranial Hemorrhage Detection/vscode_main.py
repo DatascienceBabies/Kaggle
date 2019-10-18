@@ -13,6 +13,7 @@ from tensorflow.keras.applications import MobileNet
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.layers import Dense, Flatten, Convolution2D, GlobalAveragePooling2D, Input, AveragePooling2D, Activation, Dropout
+from tensorflow.keras.callbacks import TensorBoard
 import csv
 import numpy as np
 import random
@@ -41,6 +42,7 @@ import tensorflow as tf
 import json
 import logging
 from Data_Generator_Cache import Data_Generator_Cache
+import datetime
 
 
 
@@ -282,11 +284,9 @@ model.compile(loss='binary_crossentropy', optimizer=optimizer,metrics=['accuracy
 print(model.summary())
 
 # checkpoint
-filepath=data_location + "weights.{0}.best.hdf5".format(target_type)
-# checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 best_val_loss = sys.float_info.max
 plotData = collections.defaultdict(list)
-model.save(data_location + 'model_{0}.dlm'.format(target_type))
+model_path = config['model']['model_path'] + 'model_{0}'.format(target_type)
 print('#### Going to save model to: ' + model_path)
 model.save(model_path)
 
@@ -296,6 +296,13 @@ if load_existing_weights:
 
 start = time.time()
 plotData = collections.defaultdict(list)
+
+# Tensorboard logging
+tensorboar_log_dir = config['model']['tensorboar_log_dir']
+log_dir=tensorboar_log_dir + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+file_writer = tf.summary.create_file_writer(log_dir + "\\metrics")
+file_writer.set_as_default()
+tensorboard_callback = TensorBoard(log_dir=log_dir, profile_batch = 3, update_freq='epoch')
 
 def validate_model(model, data_generator):
     validation_loss = 0
@@ -329,33 +336,32 @@ for i in range(epochs_to_train):
         verbose=1,
         use_multiprocessing=False,
         workers=0,
-        max_queue_size=32)
+        max_queue_size=32,
+        callbacks=[tensorboard_callback])
 
-    if i == 0 or i % epochs_between_testing == 0:
+    if i > 0 and i % epochs_between_testing == 0:
        validation_loss = validate_model(model, data_generator_test)
+       tf.summary.scalar('validation_loss', data=validation_loss, step=i)
 
     #train_accuracy = history.history['acc'][0]
     train_loss = history.history['loss'][0]
     
     if display_train_loss:
+        tf.summary.scalar('train_loss', data=train_loss, step=i)
         plotData['train_loss'].append(train_loss)
     if display_validation_loss:
         plotData['validation_loss'].append(validation_loss)
-    #if display_train_accuracy:
-        #plotData['train_accuracy'].append(train_accuracy)
-    #if display_validation_accuracy:
-        #plotData['validation_accuracy'].append(validation_accuracy)    
 
     if best_val_loss > validation_loss:
         best_val_loss = validation_loss
         model.save_weights(model_path)
         print("New best test loss!")
-        live_plot(plotData, logarithmic=True, averaging_size=1)
+        # live_plot(plotData, logarithmic=True, averaging_size=1)
         #print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
     if time.time() - start > 60:
         start = time.time()
-        live_plot(plotData, logarithmic=True, averaging_size=1)
+        # live_plot(plotData, logarithmic=True, averaging_size=1)
         #print("AT:", round(train_accuracy, 5), " LT: ", round(train_loss, 5))
 
 

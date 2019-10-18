@@ -76,9 +76,12 @@ class Data_Generator(Sequence):
     def get_dcm_image_data(self, dcm_image):
         image = dcm_image.pixel_array  # returns a NumPy array for uncompressed images
 
-        # Convert to int16 (from sometimes int16), 
-        # should be possible as values should always be low enough (<32k)
-        image = image.astype(np.int16)
+        if np.min(image) < 0:
+            image = image - np.min(image)
+
+        image = image.astype(np.uint16)
+
+        image = np.stack((image,)*1, axis=-1)
 
         # Move to positive pixel values
         #if np.min(image) < 0:
@@ -94,12 +97,6 @@ class Data_Generator(Sequence):
         # Sanity check
         # if image.max() > 255:
         #     raise AttributeError("Image max out of range")
-
-        # Create three pixel channels
-        if self.color:
-            image = np.stack((image,)*3, axis=-1)
-        else:
-            image = np.stack((image,)*1, axis=-1)
 
         # Check for sanity stuff
         
@@ -209,8 +206,8 @@ class Data_Generator(Sequence):
             new_height = math.floor(new_height / 2)
         
         image = cv2.copyMakeBorder(image, 0, 0, 0, math.floor(image.shape[1] / 2), cv2.BORDER_CONSTANT)
-        if not self.color:
-            image = np.stack((image,)*1, axis=-1)
+        image = np.stack((image,)*1, axis=-1)
+            
         y_offset=0
         for i in range(4):
             resized_image = resized_images[i]
@@ -257,6 +254,11 @@ class Data_Generator(Sequence):
 
                     if self.random_image_transformation:
                         image = self.image_transformer.random_transforms(image)
+
+                    # Create three pixel channels if necessary
+                    if self.color and image.shape[2] == 1:
+                        image = np.stack((image,)*3, axis=-1)
+                        image = image.reshape((image.shape[0], image.shape[1], image.shape[3]))
 
                     images_data[index, :, :, :] = image
                     index = index + 1
