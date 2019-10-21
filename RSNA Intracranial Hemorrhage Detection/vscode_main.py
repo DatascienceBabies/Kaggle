@@ -298,8 +298,8 @@ start = time.time()
 plotData = collections.defaultdict(list)
 
 # Tensorboard logging
-tensorboar_log_dir = config['model']['tensorboar_log_dir']
-log_dir=tensorboar_log_dir + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+tensorboard_log_dir = config['model']['tensorboard_log_dir']
+log_dir=tensorboard_log_dir + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 file_writer = tf.summary.create_file_writer(log_dir + "\\metrics")
 file_writer.set_as_default()
 tensorboard_callback = TensorBoard(log_dir=log_dir, profile_batch = 3, update_freq='epoch')
@@ -324,7 +324,7 @@ display_train_loss = config['graph']['display_train_loss']
 display_validation_loss = config['graph']['display_validation_loss']
 display_train_accuracy = config['graph']['display_train_accuracy']
 display_validation_accuracy = config['graph']['display_validation_accuracy']
-validation_loss = 0
+validation_loss = 99999999999999999999999999999999999999999999999999999999999999999
 
 for i in range(epochs_to_train):
     steps_per_epoch_size = math.floor(items_trained_per_epoch / batch_size)
@@ -339,7 +339,7 @@ for i in range(epochs_to_train):
         max_queue_size=32,
         callbacks=[tensorboard_callback])
 
-    if i > 0 and i % epochs_between_testing == 0:
+    if i == 0 or i % epochs_between_testing == 0:
        validation_loss = validate_model(model, data_generator_test)
        tf.summary.scalar('validation_loss', data=validation_loss, step=i)
 

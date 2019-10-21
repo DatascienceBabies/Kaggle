@@ -76,10 +76,17 @@ class Data_Generator(Sequence):
     def get_dcm_image_data(self, dcm_image):
         image = dcm_image.pixel_array  # returns a NumPy array for uncompressed images
 
-        if np.min(image) < 0:
-            image = image - np.min(image)
 
-        image = image.astype(np.uint16)
+        # np.where(image > 0, image, 0)
+        
+        # if np.min(image) < 0:
+        #     image = image - np.min(image)
+
+        # if (image.max() < 4095):
+        #     image = image * 16
+        # if (image.max() > np.iinfo(np.uint16).max):
+        #     logging.error('Value in image too large for conversion: ' + image.max() + '. Conversion is still made, but higher pixel values are truncated')
+        image = image.astype(np.int16)
 
         image = np.stack((image,)*1, axis=-1)
 
@@ -252,13 +259,16 @@ class Data_Generator(Sequence):
                         if self.cache_data:
                             self.data_generator_cache.add_to_cache(image, row[1]['ID'])                    
 
-                    if self.random_image_transformation:
-                        image = self.image_transformer.random_transforms(image)
-
                     # Create three pixel channels if necessary
                     if self.color and image.shape[2] == 1:
                         image = np.stack((image,)*3, axis=-1)
-                        image = image.reshape((image.shape[0], image.shape[1], image.shape[3]))
+                        image = image.reshape((image.shape[0], image.shape[1], image.shape[3]))                            
+
+                    if self.random_image_transformation:
+                        image = self.image_transformer.random_transforms(image)
+
+                    # Normalize to 0-1
+                    # image = image.astype(np.float) / np.iinfo(image.dtype).max
 
                     images_data[index, :, :, :] = image
                     index = index + 1
@@ -277,7 +287,9 @@ class Data_Generator(Sequence):
             # Save one random picture
             self.last_test_image_created = time.time()
             index = random.randint(0, X.shape[0]-1)
-            cv2.imwrite('c:/temp/' + str(uuid.uuid4()) + ' - ' + str(Y[index]) + '.jpg', X[index])
+            image = X[index]
+            image = image / image.max() * 255
+            cv2.imwrite('c:/temp/' + str(uuid.uuid4()) + ' - ' + str(Y[index]) + '.jpg', image)
 
     def __len__(self):
         return self.batch_dataset.batch_amount()
